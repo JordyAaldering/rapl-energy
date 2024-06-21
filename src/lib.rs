@@ -13,11 +13,11 @@ pub trait RaplReader {
 }
 
 /// Returns a RAPL reader for all CPU packages in the system.
-pub fn packages<T: RaplReader>() -> impl Iterator<Item = T> {
-    (0..u8::MAX).map_while(T::now)
+pub fn packages<T: RaplReader>() -> Vec<T> {
+    (0..u8::MAX).map_while(T::now).collect()
 }
 
 /// Returns the energy elapsed of all CPU packages in the system.
-pub fn elapsed<T: RaplReader>(packages: impl Iterator<Item = T>) -> impl Iterator<Item = u64> {
-    packages.map(|package| package.elapsed())
+pub fn elapsed<T: RaplReader>(packages: &Vec<T>) -> Vec<u64> {
+    packages.iter().map(|package| package.elapsed()).collect()
 }

@@ -24,6 +24,7 @@ impl rapl::RaplReader for RaplMock {
 #[test]
 fn dependency_injection() {
     let packages = rapl::packages::<RaplMock>();
-    let elapsed: Vec<u64> = rapl::elapsed(packages).collect();
+    assert_eq!(4, packages.len());
+    let elapsed = rapl::elapsed(&packages);
     assert_eq!(4, elapsed.len());
 }
