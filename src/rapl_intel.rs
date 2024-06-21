@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::fs::{ File, OpenOptions };
 use std::io::Read;
 use std::mem::size_of;
@@ -23,6 +24,12 @@ impl RaplReader for RaplIntel {
         let mut file = self.handle.lock().unwrap();
         let energy_uj = read_raw(&mut file);
         self.energy_uj - energy_uj
+    }
+}
+
+impl Debug for RaplIntel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}μJ", self.energy_uj))
     }
 }
 

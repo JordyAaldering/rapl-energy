@@ -1,6 +1,7 @@
 mod rapl_amd;
 mod rapl_intel;
 
+
 pub use rapl_amd::RaplAMD;
 pub use rapl_intel::RaplIntel;
 
@@ -8,11 +9,11 @@ use arrayvec::ArrayVec;
 
 const MAX: usize = u8::MAX as usize;
 
-pub trait RaplReader {
+pub trait RaplReader : std::fmt::Debug {
     /// Creates a new RAPL reader for the given CPU package id.
     fn now(package_id: usize) -> Option<Self> where Self: Sized;
 
-    /// Returns the energy elapsed in nano-Joules since this RAPL reader was created.
+    /// Returns the energy elapsed in micro-Joules since this RAPL reader was created.
     fn elapsed(&self) -> u64;
 }
 
