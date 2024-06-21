@@ -11,7 +11,7 @@ pub struct RaplIntel {
 }
 
 impl RaplReader for RaplIntel {
-    fn now(package_id: u8) -> Option<Self> {
+    fn now(package_id: usize) -> Option<Self> {
         let path = format!("/sys/class/powercap/intel-rapl:{}/energy_uj", package_id);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
         let energy_uj = read_raw(&mut file);

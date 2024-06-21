@@ -7,7 +7,7 @@ pub struct RaplMock {
 }
 
 impl rapl::RaplReader for RaplMock {
-    fn now(package_id: u8) -> Option<Self> {
+    fn now(package_id: usize) -> Option<Self> {
         if package_id < 4 {
             let handle = Instant::now();
             Some(RaplMock { handle })

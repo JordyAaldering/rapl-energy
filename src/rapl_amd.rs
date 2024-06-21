@@ -11,7 +11,7 @@ pub struct RaplAMD {
 }
 
 impl RaplReader for RaplAMD {
-    fn now(package_id: u8) -> Option<Self> {
+    fn now(package_id: usize) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
         let energy_uj = read_raw(&mut file);
