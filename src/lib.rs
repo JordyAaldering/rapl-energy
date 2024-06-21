@@ -7,7 +7,7 @@ pub use rapl_intel::RaplIntel;
 
 use arrayvec::ArrayVec;
 
-const MAX: usize = u8::MAX as usize;
+pub const MAX: usize = u8::MAX as usize;
 
 pub trait RaplReader : std::fmt::Debug {
     /// Creates a new RAPL reader for the given CPU package id.
