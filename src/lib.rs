@@ -4,6 +4,8 @@ mod rapl_intel;
 pub use rapl_amd::RaplAMD;
 pub use rapl_intel::RaplIntel;
 
+use arrayvec::ArrayVec;
+
 pub trait RaplReader {
     /// Creates a new RAPL reader for the given CPU package id.
     fn now(package_id: u8) -> Option<Self> where Self: Sized;
@@ -13,11 +15,11 @@ pub trait RaplReader {
 }
 
 /// Returns a RAPL reader for all CPU packages in the system.
-pub fn packages<T: RaplReader>() -> Vec<T> {
+pub fn packages<T: RaplReader>() -> ArrayVec<T, { u8::MAX as usize }> {
     (0..u8::MAX).map_while(T::now).collect()
 }
 
 /// Returns the energy elapsed of all CPU packages in the system.
-pub fn elapsed<T: RaplReader>(packages: &Vec<T>) -> Vec<u64> {
+pub fn elapsed<T: RaplReader>(packages: &ArrayVec<T, { u8::MAX as usize }>) -> ArrayVec<u64, { u8::MAX as usize }> {
     packages.iter().map(|package| package.elapsed()).collect()
 }
