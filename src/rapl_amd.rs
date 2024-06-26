@@ -23,7 +23,7 @@ impl RaplReader for RaplAMD {
     fn elapsed(&self) -> u64 {
         let mut file = self.handle.lock().unwrap();
         let energy_uj = read_raw(&mut file);
-        self.energy_uj - energy_uj
+        energy_uj - self.energy_uj
     }
 
     fn label(&self) -> String {
