@@ -14,3 +14,10 @@ version = "0.1.2"
 dependencies = [
  "arrayvec",
 ]
+
+[[package]]
+name = "rapl-energy-c"
+version = "0.1.0"
+dependencies = [
+ "rapl-energy",
+]

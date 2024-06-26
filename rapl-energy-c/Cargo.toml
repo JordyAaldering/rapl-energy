@@ -1,0 +1,12 @@
+[package]
+name = "rapl-energy-c"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rapl_energy_c"
+path = "libc.rs"
+crate-type = ["staticlib"]
+
+[dependencies]
+rapl-energy = { path = "../rapl-energy" }
