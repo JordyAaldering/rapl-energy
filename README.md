@@ -50,7 +50,7 @@ One can then print the accumulated energy value as follows.
 (Where `-a` prints all CPUs, and `-u` prints the value as an unsigned decimal.)
 
 ```bash
-sudo modprobe 0xC001029A -au
+sudo rdmsr 0xC001029A -au
 ```
 
 It seems that the executable must be run with sudo though.
@@ -58,4 +58,17 @@ I still need to figure out if perhaps this can be done instead with a group.
 
 ```bash
 sudo ./target/debug/examples/amd
+```
+
+## MSR group
+
+It might be useful to create a group for MSR.
+Sadly this does not resolve the above issue however.
+
+```bash
+sudo groupadd msr
+sudo chgrp msr /dev/cpu/*/msr
+sudo chmod g+rw /dev/cpu/*/msr
+sudo usermod -aG msr $(whoami)
+newgrp msr
 ```
