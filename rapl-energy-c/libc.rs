@@ -1,5 +1,8 @@
 use rapl_energy::*;
 
+const RAPL_NULLPTR: u32 = 1;
+const RAPL_SUCCESS: u32 = 0;
+
 #[no_mangle]
 pub extern "C" fn rapl_intel_start(rapl_ptr: *mut *mut RaplVec<RaplIntel>) -> u32 {
     unsafe {
@@ -12,13 +15,13 @@ pub extern "C" fn rapl_intel_start(rapl_ptr: *mut *mut RaplVec<RaplIntel>) -> u3
         *rapl_ptr = Box::into_raw(Box::new(packages));
     }
 
-    0
+    RAPL_SUCCESS
 }
 
 #[no_mangle]
 pub extern "C" fn rapl_intel_stop(rapl_ptr: *mut RaplVec<RaplIntel>, elapsed_ptr: *mut *mut RaplVec<u64>) -> u32 {
     if rapl_ptr.is_null() {
-        return 1;
+        return RAPL_NULLPTR;
     }
 
     let rapl = unsafe {
@@ -31,13 +34,27 @@ pub extern "C" fn rapl_intel_stop(rapl_ptr: *mut RaplVec<RaplIntel>, elapsed_ptr
         *elapsed_ptr = Box::into_raw(Box::new(elapsed));
     }
 
-    0
+    RAPL_SUCCESS
+}
+
+#[no_mangle]
+pub extern "C" fn rapl_intel_free(rapl_ptr: *mut RaplVec<RaplIntel>, elapsed_ptr: *mut RaplVec<u64>) -> u32 {
+    if rapl_ptr.is_null() || elapsed_ptr.is_null() {
+        return RAPL_NULLPTR;
+    }
+
+    unsafe {
+        drop(Box::from_raw(rapl_ptr));
+        drop(Box::from_raw(elapsed_ptr));
+    }
+
+    RAPL_SUCCESS
 }
 
 #[no_mangle]
 pub extern "C" fn rapl_print(elapsed_ptr: *mut RaplVec<u64>) -> u32 {
     if elapsed_ptr.is_null() {
-        return 1;
+        return RAPL_NULLPTR;
     }
 
     let elapsed = unsafe {
@@ -46,5 +63,5 @@ pub extern "C" fn rapl_print(elapsed_ptr: *mut RaplVec<u64>) -> u32 {
 
     println!("{:?}", elapsed);
 
-    0
+    RAPL_SUCCESS
 }
