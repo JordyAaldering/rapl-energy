@@ -18,9 +18,9 @@ int main()
     rapl_print(elapsed_ptr);
 
     // TODO: This segfaults
-    rapl_amd_free(rapl_ptr, elapsed_ptr);
-    rapl_ptr = NULL;
-    elapsed_ptr = NULL;
+    //rapl_amd_free(rapl_ptr, elapsed_ptr);
+    //rapl_ptr = NULL;
+    //elapsed_ptr = NULL;
 
     return 0;
 }
