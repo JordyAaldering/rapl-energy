@@ -1,10 +1,8 @@
 mod rapl_amd;
 mod rapl_intel;
-mod rapl_mock;
 
 pub use rapl_amd::RaplAMD;
 pub use rapl_intel::RaplIntel;
-pub use rapl_mock::RaplMock;
 
 use arrayvec::ArrayVec;
 
