@@ -32,8 +32,9 @@ impl RaplReader for RaplAMD {
 }
 
 fn read_raw(file: &mut File) -> u64 {
-    const MSR_PACKAGE_ENERGY: u64 = 0xC001029B;
-    file.seek(SeekFrom::Start(MSR_PACKAGE_ENERGY)).unwrap();
+    // const MSR_PACKAGE_ENERGY: u64 = 0xC001029B;
+    const MSR_CORE_ENERGY: u64 = 0xC001029A;
+    file.seek(SeekFrom::Start(MSR_CORE_ENERGY)).unwrap();
     let mut buf = [0; size_of::<u64>()];
     file.read_exact(&mut buf).unwrap();
     u64::from_le_bytes(buf)

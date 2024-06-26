@@ -31,3 +31,24 @@ owner class/powercap/intel-rapl:0/energy_uj = root:rapl
 mode class/powercap/intel-rapl:0:0/energy_uj = 0440
 owner class/powercap/intel-rapl:0:0/energy_uj = root:rapl
 ```
+
+## MSR permissions
+
+Reading model-specific registers (MSR) requires elevated permissions.
+
+```
+sudo apt install msr-tools
+```
+
+You might need to run modprobe as well.
+
+```
+modprobe msr
+```
+
+One can then print the accumulated energy value as follows.
+(Where `-a` prints all CPUs, and `-u` prints the value as an unsigned decimal.)
+
+```
+sudo modprobe 0xC001029A -au
+```
