@@ -57,15 +57,11 @@ pub extern "C" fn rapl_amd_stop(rapl_ptr: *mut RaplVec<RaplAMD>, elapsed_ptr: *m
 
 fn rapl_free<T: RaplReader>(rapl_ptr: *mut RaplVec<T>, elapsed_ptr: *mut RaplVec<u64>) {
     if !rapl_ptr.is_null() {
-        unsafe {
-            drop(Box::from_raw(rapl_ptr));
-        }
+        drop(unsafe { Box::from_raw(rapl_ptr) });
     }
 
     if !elapsed_ptr.is_null() {
-        unsafe {
-            drop(Box::from_raw(elapsed_ptr));
-        }
+        drop(unsafe { Box::from_raw(elapsed_ptr) });
     }
 }
 
