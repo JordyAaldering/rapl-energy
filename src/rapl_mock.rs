@@ -20,4 +20,8 @@ impl RaplReader for RaplMock {
     fn elapsed(&self) -> u64 {
         self.handle.elapsed().as_micros() as u64 * (self.package_id + 1) as u64
     }
+
+    fn label(&self) -> String {
+        self.package_id.to_string()
+    }
 }

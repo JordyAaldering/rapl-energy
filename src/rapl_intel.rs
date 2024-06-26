@@ -1,4 +1,4 @@
-use std::fs::{ File, OpenOptions };
+use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::mem::size_of;
 use std::sync::Mutex;
@@ -7,6 +7,7 @@ use crate::RaplReader;
 
 pub struct RaplIntel {
     handle: Mutex<File>,
+    package_id: usize,
     energy_uj: u64,
 }
 
@@ -16,13 +17,17 @@ impl RaplReader for RaplIntel {
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
         let energy_uj = read_raw(&mut file);
         let handle = Mutex::new(file);
-        Some(RaplIntel { handle, energy_uj })
+        Some(RaplIntel { handle, package_id, energy_uj })
     }
 
     fn elapsed(&self) -> u64 {
         let mut file = self.handle.lock().unwrap();
         let energy_uj = read_raw(&mut file);
         self.energy_uj - energy_uj
+    }
+
+    fn label(&self) -> String {
+        format!("intel-rapl:{}", self.package_id)
     }
 }
 
