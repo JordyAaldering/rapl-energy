@@ -7,5 +7,5 @@ fn main() {
     let rapl = Energy::rapl();
     thread::sleep(Duration::from_secs(1));
     let elapsed = rapl.elapsed();
-    println!("{:?}", serde_json::to_string(&elapsed));
+    println!("{}", serde_json::to_string(&elapsed).unwrap());
 }

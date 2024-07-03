@@ -17,10 +17,10 @@ impl Energy {
         Energy::Rapl(rapl)
     }
 
-    pub fn elapsed(&self) -> impl serde::Serialize {
+    pub fn elapsed(&self) -> Box<dyn erased_serde::Serialize> {
         match self {
-            Energy::MSR(msr) => msr.elapsed(),
-            Energy::Rapl(rapl) => rapl.elapsed(),
+            Energy::MSR(msr) => Box::new(msr.elapsed()),
+            Energy::Rapl(rapl) => Box::new(rapl.elapsed()),
         }
     }
 }

@@ -19,7 +19,7 @@ impl Msr {
     }
 
     pub fn elapsed(&self) -> Vec<u64> {
-        self.cores.iter().map(|core| core.elapsed()).collect()
+        self.cores.iter().map(MsrCore::elapsed).collect()
     }
 }
 

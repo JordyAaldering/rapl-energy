@@ -23,8 +23,8 @@ impl Rapl {
         Rapl { packages }
     }
 
-    pub fn elapsed(&self) -> Vec<u64> {
-        self.packages.iter().flat_map(|core| core.elapsed()).collect()
+    pub fn elapsed(&self) -> Vec<(u64, Vec<u64>)> {
+        self.packages.iter().map(Package::elapsed).collect()
     }
 }
 
@@ -39,14 +39,13 @@ impl Package {
         Some(Package { package_id, energy_uj, subzones })
     }
 
-    fn elapsed(&self) -> Vec<u64> {
+    fn elapsed(&self) -> (u64, Vec<u64>) {
         let path = format!("/sys/class/powercap/intel-rapl:{}/energy_uj", self.package_id);
         let mut file = OpenOptions::new().read(true).open(&path).unwrap();
         let energy_uj = read_raw(&mut file) - self.energy_uj;
 
-        let mut subzone_energy = self.subzones.iter().map(|zone| zone.elapsed()).collect::<Vec<u64>>();
-        subzone_energy.insert(0, energy_uj);
-        subzone_energy
+        let subzone_energy = self.subzones.iter().map(Subzone::elapsed).collect();
+        (energy_uj, subzone_energy)
     }
 }
 

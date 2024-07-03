@@ -10,6 +10,7 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [dependencies]
+erased-serde = "0.4.5"
 serde = "1.0.203"
 
 [dev-dependencies]
