@@ -7,5 +7,5 @@ fn main() {
     let msr = Energy::msr();
     thread::sleep(Duration::from_secs(1));
     let elapsed = msr.elapsed();
-    println!("{:?}", elapsed);
+    println!("{:?}", serde_json::to_string(&elapsed));
 }

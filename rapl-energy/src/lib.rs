@@ -17,7 +17,7 @@ impl Energy {
         Energy::Rapl(rapl)
     }
 
-    pub fn elapsed(&self) -> Vec<u64> {
+    pub fn elapsed(&self) -> impl serde::Serialize {
         match self {
             Energy::MSR(msr) => msr.elapsed(),
             Energy::Rapl(rapl) => rapl.elapsed(),
