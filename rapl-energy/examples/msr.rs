@@ -1,11 +1,11 @@
 use std::thread;
 use std::time::Duration;
 
-use rapl_energy as rapl;
+use rapl_energy::Energy;
 
 fn main() {
-    let packages = rapl::get_packages::<rapl::RaplAMD>();
+    let msr = Energy::msr();
     thread::sleep(Duration::from_secs(1));
-    let elapsed = rapl::get_elapsed(&packages);
+    let elapsed = msr.elapsed();
     println!("{:?}", elapsed);
 }

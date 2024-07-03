@@ -23,8 +23,8 @@ pub extern "C" fn rapl_intel_start(rapl_ptr: *mut *mut RaplVec<RaplIntel>) -> u3
 }
 
 #[no_mangle]
-pub extern "C" fn rapl_amd_start(rapl_ptr: *mut *mut RaplVec<RaplAMD>) -> u32 {
-    rapl_start::<RaplAMD>(rapl_ptr)
+pub extern "C" fn rapl_amd_start(rapl_ptr: *mut *mut RaplVec<Msr>) -> u32 {
+    rapl_start::<Msr>(rapl_ptr)
 }
 
 fn rapl_stop<T: RaplReader>(rapl_ptr: *mut RaplVec<T>, elapsed_ptr: *mut *mut RaplVec<u64>) -> u32 {
@@ -51,8 +51,8 @@ pub extern "C" fn rapl_intel_stop(rapl_ptr: *mut RaplVec<RaplIntel>, elapsed_ptr
 }
 
 #[no_mangle]
-pub extern "C" fn rapl_amd_stop(rapl_ptr: *mut RaplVec<RaplAMD>, elapsed_ptr: *mut *mut RaplVec<u64>) -> u32 {
-    rapl_stop::<RaplAMD>(rapl_ptr, elapsed_ptr)
+pub extern "C" fn rapl_amd_stop(rapl_ptr: *mut RaplVec<Msr>, elapsed_ptr: *mut *mut RaplVec<u64>) -> u32 {
+    rapl_stop::<Msr>(rapl_ptr, elapsed_ptr)
 }
 
 fn rapl_free<T: RaplReader>(rapl_ptr: *mut RaplVec<T>, elapsed_ptr: *mut RaplVec<u64>) {
@@ -71,8 +71,8 @@ pub extern "C" fn rapl_intel_free(rapl_ptr: *mut RaplVec<RaplIntel>, elapsed_ptr
 }
 
 #[no_mangle]
-pub extern "C" fn rapl_amd_free(rapl_ptr: *mut RaplVec<RaplAMD>, elapsed_ptr: *mut RaplVec<u64>) {
-    rapl_free::<RaplAMD>(rapl_ptr, elapsed_ptr)
+pub extern "C" fn rapl_amd_free(rapl_ptr: *mut RaplVec<Msr>, elapsed_ptr: *mut RaplVec<u64>) {
+    rapl_free::<Msr>(rapl_ptr, elapsed_ptr)
 }
 
 #[no_mangle]

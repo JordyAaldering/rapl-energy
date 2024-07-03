@@ -3,31 +3,39 @@ use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::sync::Mutex;
 
-use crate::RaplReader;
-
-pub struct RaplAMD {
-    handle: Mutex<File>,
-    package_id: usize,
-    energy_uj: u64,
+pub struct Msr {
+    cores: Vec<MsrCore>,
 }
 
-impl RaplReader for RaplAMD {
+struct MsrCore {
+    handle: Mutex<File>,
+    core_energy_uj: u64,
+}
+
+impl Msr {
+    pub fn now() -> Self {
+        let cores = (0..256).map_while(MsrCore::now).collect();
+        Msr { cores }
+    }
+
+    pub fn elapsed(&self) -> Vec<u64> {
+        self.cores.iter().map(|core| core.elapsed()).collect()
+    }
+}
+
+impl MsrCore {
     fn now(package_id: usize) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
         let mut file = OpenOptions::new().read(true).write(true).open(&path).ok()?;
-        let energy_uj = read_raw(&mut file);
+        let core_energy_uj = read_raw(&mut file);
         let handle = Mutex::new(file);
-        Some(RaplAMD { handle, package_id, energy_uj })
+        Some(MsrCore { handle, core_energy_uj })
     }
 
     fn elapsed(&self) -> u64 {
         let mut file = self.handle.lock().unwrap();
-        let energy_uj = read_raw(&mut file);
-        energy_uj - self.energy_uj
-    }
-
-    fn label(&self) -> String {
-        format!("cpu/{}", self.package_id)
+        let core_energy_uj = read_raw(&mut file);
+        core_energy_uj - self.core_energy_uj
     }
 }
 
