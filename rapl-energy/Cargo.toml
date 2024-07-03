@@ -7,7 +7,7 @@ keywords = ["benchmarking", "energy", "sustainability"]
 description = "Small library for getting the CPU energy consumption from RAPL"
 repository = "https://github.com/JordyAaldering/rapl-energy"
 license = "Apache-2.0"
-readme = "README.md"
+readme = "../README.md"
 
 [dependencies]
 erased-serde = "0.4.5"
