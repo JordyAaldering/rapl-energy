@@ -10,3 +10,4 @@ crate-type = ["staticlib"]
 
 [dependencies]
 rapl-energy = { path = "../rapl-energy" }
+serde_json = "1.0.120"
