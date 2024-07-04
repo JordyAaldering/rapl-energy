@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
@@ -9,10 +10,12 @@ pub struct Msr {
 
 struct MsrCore {
     handle: Mutex<File>,
+    package_id: u8,
     package_energy_uj: u64,
     core_energy_uj: u64,
 }
 
+#[derive(Clone, Default)]
 #[derive(serde::Serialize)]
 pub struct MsrCoreEnergy {
     package_energy_uj: u64,
@@ -28,17 +31,17 @@ enum MsrOffset {
 
 impl Msr {
     pub fn now() -> Self {
-        let cores = (0..256).map_while(MsrCore::now).collect();
+        let cores = (0..u8::MAX).map_while(MsrCore::now).collect();
         Msr { cores }
     }
 
-    pub fn elapsed(&self) -> Vec<MsrCoreEnergy> {
-        self.cores.iter().map(MsrCore::elapsed).collect()
+    pub fn elapsed(&self) -> HashMap<u8, MsrCoreEnergy> {
+        self.cores.iter().map(|core| (core.package_id, core.elapsed())).collect()
     }
 }
 
 impl MsrCore {
-    fn now(package_id: usize) -> Option<Self> {
+    fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
         let mut file = OpenOptions::new().read(true).write(true).open(&path).ok()?;
 
@@ -46,7 +49,7 @@ impl MsrCore {
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
         let handle = Mutex::new(file);
-        Some(MsrCore { handle, package_energy_uj, core_energy_uj })
+        Some(MsrCore { handle, package_id, package_energy_uj, core_energy_uj })
     }
 
     fn elapsed(&self) -> MsrCoreEnergy {
@@ -64,24 +67,4 @@ fn read(file: &mut File, offset: MsrOffset) -> u64 {
     let mut buf = [0; size_of::<u64>()];
     file.read_exact(&mut buf).unwrap();
     u64::from_le_bytes(buf)
-}
-
-impl std::ops::Add for MsrCoreEnergy {
-    type Output = MsrCoreEnergy;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        let package_energy_uj = self.package_energy_uj + rhs.package_energy_uj;
-        let core_energy_uj = self.core_energy_uj + rhs.core_energy_uj;
-        MsrCoreEnergy { package_energy_uj, core_energy_uj }
-    }
-}
-
-impl std::ops::Sub for MsrCoreEnergy {
-    type Output = MsrCoreEnergy;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        let package_energy_uj = self.package_energy_uj - rhs.package_energy_uj;
-        let core_energy_uj = self.core_energy_uj - rhs.core_energy_uj;
-        MsrCoreEnergy { package_energy_uj, core_energy_uj }
-    }
 }
