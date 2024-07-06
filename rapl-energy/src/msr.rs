@@ -38,6 +38,10 @@ impl Msr {
     pub fn elapsed(&self) -> HashMap<u8, MsrCoreEnergy> {
         self.cores.iter().map(|core| (core.package_id, core.elapsed())).collect()
     }
+
+    pub fn elapsed_mut(&mut self) -> HashMap<u8, MsrCoreEnergy> {
+        self.cores.iter_mut().map(|core| (core.package_id, core.elapsed_mut())).collect()
+    }
 }
 
 impl MsrCore {
@@ -59,6 +63,18 @@ impl MsrCore {
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_uj;
 
         MsrCoreEnergy { package_energy_uj, core_energy_uj }
+    }
+
+    fn elapsed_mut(&mut self) -> MsrCoreEnergy {
+        let prev_package_energy_uj = self.package_energy_uj;
+        let prev_core_energy_uj = self.core_energy_uj;
+
+        let elapsed = self.elapsed();
+
+        self.package_energy_uj = prev_package_energy_uj;
+        self.core_energy_uj = prev_core_energy_uj;
+
+        elapsed
     }
 }
 

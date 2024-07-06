@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Read;
 
 pub struct Rapl {
@@ -40,44 +40,66 @@ impl Rapl {
     pub fn elapsed(&self) -> HashMap<u8, PackageEnergy> {
         self.packages.iter().map(|package| (package.package_id, package.elapsed())).collect()
     }
+
+    pub fn elapsed_mut(&mut self) -> HashMap<u8, PackageEnergy> {
+        self.packages.iter_mut().map(|package| (package.package_id, package.elapsed_mut())).collect()
+    }
 }
 
 impl Package {
     fn now(package_id: u8) -> Option<Self> {
-        let path = format!("/sys/class/powercap/intel-rapl:{}/energy_uj", package_id);
-        let mut file = OpenOptions::new().read(true).open(&path).ok()?;
-        let energy_uj = read_raw(&mut file);
+        let energy_uj = package_raw(package_id)?;
         let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
         Some(Package { package_id, energy_uj, subzones })
     }
 
     fn elapsed(&self) -> PackageEnergy {
-        let path = format!("/sys/class/powercap/intel-rapl:{}/energy_uj", self.package_id);
-        let mut file = OpenOptions::new().read(true).open(&path).unwrap();
-        let energy_uj = read_raw(&mut file) - self.energy_uj;
+        let energy_uj = package_raw(self.package_id).unwrap() - self.energy_uj;
         let subzones = self.subzones.iter().map(|zone| (zone.subzone_id, zone.elapsed())).collect();
+        PackageEnergy { energy_uj, subzones }
+    }
+
+    fn elapsed_mut(&mut self) -> PackageEnergy {
+        let prev_energy_uj = self.energy_uj;
+        let energy_uj = package_raw(self.package_id).unwrap() - self.energy_uj;
+        self.energy_uj = prev_energy_uj;
+
+        let subzones = self.subzones.iter_mut().map(|zone| (zone.subzone_id, zone.elapsed_mut())).collect();
         PackageEnergy { energy_uj, subzones }
     }
 }
 
 impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
-        let path = format!("/sys/class/powercap/intel-rapl:{}:{}/energy_uj", package_id, subzone_id);
-        let mut file = OpenOptions::new().read(true).open(&path).ok()?;
-        let energy_uj = read_raw(&mut file);
+        let energy_uj = subzone_raw(package_id, subzone_id)?;
         Some(Subzone { package_id, subzone_id, energy_uj })
     }
 
     fn elapsed(&self) -> SubzoneEnergy {
-        let path = format!("/sys/class/powercap/intel-rapl:{}:{}/energy_uj", self.package_id, self.subzone_id);
-        let mut file = OpenOptions::new().read(true).open(&path).unwrap();
-        let energy_uj = read_raw(&mut file) - self.energy_uj;
+        let energy_uj = subzone_raw(self.package_id, self.subzone_id).unwrap() - self.energy_uj;
         SubzoneEnergy { energy_uj }
+    }
+
+    fn elapsed_mut(&mut self) -> SubzoneEnergy {
+        let prev_energy_uj = self.energy_uj;
+        let elapsed = self.elapsed();
+        self.energy_uj = prev_energy_uj;
+        elapsed
     }
 }
 
-fn read_raw(file: &mut File) -> u64 {
+fn package_raw(package_id: u8) -> Option<u64> {
+    let path = format!("/sys/class/powercap/intel-rapl:{}/energy_uj", package_id);
+    let mut file = OpenOptions::new().read(true).open(&path).ok()?;
     let mut buf = String::new();
-    file.read_to_string(&mut buf).unwrap();
-    buf.trim().parse::<u64>().unwrap()
+    file.read_to_string(&mut buf).ok()?;
+    buf.trim().parse::<u64>().ok()
+}
+
+fn subzone_raw(package_id: u8, subzone_id: u8) -> Option<u64> {
+    let path = format!("/sys/class/powercap/intel-rapl:{}:{}/energy_uj", package_id, subzone_id);
+    let mut file = OpenOptions::new().read(true).open(&path).ok()?;
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).ok()?;
+    buf.trim().parse::<u64>().ok()
 }

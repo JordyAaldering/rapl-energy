@@ -1,5 +1,5 @@
-mod msr;
-mod rapl;
+pub mod msr;
+pub mod rapl;
 
 pub use msr::Msr;
 pub use rapl::Rapl;
@@ -26,6 +26,13 @@ impl Energy {
         match self {
             Energy::Msr(msr) => Box::new(msr.elapsed()),
             Energy::Rapl(rapl) => Box::new(rapl.elapsed()),
+        }
+    }
+
+    pub fn elapsed_mut(&mut self) -> Box<Serializable> {
+        match self {
+            Energy::Msr(msr) => Box::new(msr.elapsed_mut()),
+            Energy::Rapl(rapl) => Box::new(rapl.elapsed_mut()),
         }
     }
 }
