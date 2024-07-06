@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
@@ -10,14 +9,13 @@ pub struct Msr {
 
 struct MsrCore {
     handle: Mutex<File>,
-    package_id: u8,
     package_energy_uj: u64,
     core_energy_uj: u64,
 }
 
 #[derive(Clone, Default)]
 #[derive(serde::Serialize)]
-pub struct MsrCoreEnergy {
+pub struct MsrEnergy {
     package_energy_uj: u64,
     core_energy_uj: u64,
 }
@@ -35,12 +33,12 @@ impl Msr {
         Msr { cores }
     }
 
-    pub fn elapsed(&self) -> HashMap<u8, MsrCoreEnergy> {
-        self.cores.iter().map(|core| (core.package_id, core.elapsed())).collect()
+    pub fn elapsed(&self) -> Vec<MsrEnergy> {
+        self.cores.iter().map(MsrCore::elapsed).collect()
     }
 
-    pub fn elapsed_mut(&mut self) -> HashMap<u8, MsrCoreEnergy> {
-        self.cores.iter_mut().map(|core| (core.package_id, core.elapsed_mut())).collect()
+    pub fn elapsed_mut(&mut self) -> Vec<MsrEnergy> {
+        self.cores.iter_mut().map(MsrCore::elapsed_mut).collect()
     }
 }
 
@@ -53,19 +51,19 @@ impl MsrCore {
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
         let handle = Mutex::new(file);
-        Some(MsrCore { handle, package_id, package_energy_uj, core_energy_uj })
+        Some(MsrCore { handle, package_energy_uj, core_energy_uj })
     }
 
-    fn elapsed(&self) -> MsrCoreEnergy {
+    fn elapsed(&self) -> MsrEnergy {
         let mut file = self.handle.lock().unwrap();
 
         let package_energy_uj = read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_uj;
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_uj;
 
-        MsrCoreEnergy { package_energy_uj, core_energy_uj }
+        MsrEnergy { package_energy_uj, core_energy_uj }
     }
 
-    fn elapsed_mut(&mut self) -> MsrCoreEnergy {
+    fn elapsed_mut(&mut self) -> MsrEnergy {
         let prev_package_energy_uj = self.package_energy_uj;
         let prev_core_energy_uj = self.core_energy_uj;
 

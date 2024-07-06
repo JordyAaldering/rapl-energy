@@ -20,15 +20,9 @@ struct Subzone {
 
 #[derive(Clone, Default)]
 #[derive(serde::Serialize)]
-pub struct PackageEnergy {
+pub struct RaplEnergy {
     energy_uj: u64,
-    subzones: HashMap<u8, SubzoneEnergy>,
-}
-
-#[derive(Clone, Default)]
-#[derive(serde::Serialize)]
-struct SubzoneEnergy {
-    energy_uj: u64,
+    subzones: Vec<u64>,
 }
 
 impl Rapl {
@@ -37,11 +31,11 @@ impl Rapl {
         Rapl { packages }
     }
 
-    pub fn elapsed(&self) -> HashMap<u8, PackageEnergy> {
+    pub fn elapsed(&self) -> HashMap<u8, RaplEnergy> {
         self.packages.iter().map(|package| (package.package_id, package.elapsed())).collect()
     }
 
-    pub fn elapsed_mut(&mut self) -> HashMap<u8, PackageEnergy> {
+    pub fn elapsed_mut(&mut self) -> HashMap<u8, RaplEnergy> {
         self.packages.iter_mut().map(|package| (package.package_id, package.elapsed_mut())).collect()
     }
 }
@@ -53,19 +47,19 @@ impl Package {
         Some(Package { package_id, energy_uj, subzones })
     }
 
-    fn elapsed(&self) -> PackageEnergy {
+    fn elapsed(&self) -> RaplEnergy {
         let energy_uj = package_raw(self.package_id).unwrap() - self.energy_uj;
-        let subzones = self.subzones.iter().map(|zone| (zone.subzone_id, zone.elapsed())).collect();
-        PackageEnergy { energy_uj, subzones }
+        let subzones = self.subzones.iter().map(Subzone::elapsed).collect();
+        RaplEnergy { energy_uj, subzones }
     }
 
-    fn elapsed_mut(&mut self) -> PackageEnergy {
+    fn elapsed_mut(&mut self) -> RaplEnergy {
         let prev_energy_uj = self.energy_uj;
         let energy_uj = package_raw(self.package_id).unwrap() - self.energy_uj;
         self.energy_uj = prev_energy_uj;
 
-        let subzones = self.subzones.iter_mut().map(|zone| (zone.subzone_id, zone.elapsed_mut())).collect();
-        PackageEnergy { energy_uj, subzones }
+        let subzones = self.subzones.iter_mut().map(Subzone::elapsed_mut).collect();
+        RaplEnergy { energy_uj, subzones }
     }
 }
 
@@ -75,12 +69,11 @@ impl Subzone {
         Some(Subzone { package_id, subzone_id, energy_uj })
     }
 
-    fn elapsed(&self) -> SubzoneEnergy {
-        let energy_uj = subzone_raw(self.package_id, self.subzone_id).unwrap() - self.energy_uj;
-        SubzoneEnergy { energy_uj }
+    fn elapsed(&self) -> u64 {
+        subzone_raw(self.package_id, self.subzone_id).unwrap() - self.energy_uj
     }
 
-    fn elapsed_mut(&mut self) -> SubzoneEnergy {
+    fn elapsed_mut(&mut self) -> u64 {
         let prev_energy_uj = self.energy_uj;
         let elapsed = self.elapsed();
         self.energy_uj = prev_energy_uj;
