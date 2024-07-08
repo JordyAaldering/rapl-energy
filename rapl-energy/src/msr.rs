@@ -8,6 +8,7 @@ pub struct Msr {
 }
 
 struct MsrCore {
+    package_id: u8,
     handle: Mutex<File>,
     package_energy_uj: u64,
     core_energy_uj: u64,
@@ -40,6 +41,10 @@ impl Msr {
     pub fn elapsed_mut(&mut self) -> Vec<MsrEnergy> {
         self.cores.iter_mut().map(MsrCore::elapsed_mut).collect()
     }
+
+    pub fn headers(&self) -> Vec<String> {
+        self.cores.iter().map(MsrCore::header).collect()
+    }
 }
 
 impl MsrCore {
@@ -50,7 +55,7 @@ impl MsrCore {
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
         let handle = Mutex::new(file);
-        Some(MsrCore { handle, package_energy_uj, core_energy_uj })
+        Some(MsrCore { package_id, handle, package_energy_uj, core_energy_uj })
     }
 
     fn elapsed(&self) -> MsrEnergy {
@@ -82,6 +87,10 @@ impl MsrCore {
             package_energy_uj: package_next - package_prev,
             core_energy_uj: core_next - core_prev,
         }
+    }
+
+    fn header(&self) -> String {
+        format!("cpu{}", self.package_id)
     }
 }
 

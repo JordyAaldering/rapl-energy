@@ -37,6 +37,10 @@ impl Rapl {
     pub fn elapsed_mut(&mut self) -> Vec<RaplEnergy> {
         self.packages.iter_mut().map(Package::elapsed_mut).collect()
     }
+
+    pub fn headers(&self) -> Vec<String> {
+        self.packages.iter().flat_map(Package::headers).collect()
+    }
 }
 
 impl Package {
@@ -64,6 +68,12 @@ impl Package {
 
         RaplEnergy { package_energy_uj: next - prev, subzones }
     }
+
+    fn headers(&self) -> Vec<String> {
+        let mut res = self.subzones.iter().map(Subzone::header).collect::<Vec<String>>();
+        res.insert(0, format!("intel-rapl:{}", self.package_id));
+        res
+    }
 }
 
 impl Subzone {
@@ -83,6 +93,10 @@ impl Subzone {
         let next = read_subzone(self.package_id, self.subzone_id).unwrap();
         self.energy_uj = next;
         next - prev
+    }
+
+    fn header(&self) -> String {
+        format!("intel-rapl:{}:{}", self.package_id, self.subzone_id)
     }
 }
 
