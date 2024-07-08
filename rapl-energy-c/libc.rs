@@ -25,14 +25,3 @@ pub extern "C" fn print_energy(energy_in: *mut Energy) {
     let elapsed = energy.elapsed();
     println!("{}", serde_json::to_string(&elapsed).unwrap());
 }
-
-#[no_mangle]
-pub extern "C" fn free_energy(energy_in: *mut Energy) {
-    if energy_in.is_null() {
-        println!("nullptr");
-        return;
-    }
-
-    let energy = unsafe { Box::from_raw(energy_in) };
-    drop(energy);
-}
