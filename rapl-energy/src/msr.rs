@@ -46,7 +46,6 @@ impl MsrCore {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
         let mut file = OpenOptions::new().read(true).write(true).open(&path).ok()?;
-
         let package_energy_uj = read(&mut file, MsrOffset::PackageEnergy);
         let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
@@ -55,24 +54,34 @@ impl MsrCore {
     }
 
     fn elapsed(&self) -> MsrEnergy {
+        let package_prev = self.package_energy_uj;
+        let core_prev = self.core_energy_uj;
+
         let mut file = self.handle.lock().unwrap();
+        let package_next = read(&mut file, MsrOffset::PackageEnergy);
+        let core_next = read(&mut file, MsrOffset::CoreEnergy);
 
-        let package_energy_uj = read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_uj;
-        let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_uj;
-
-        MsrEnergy { package_energy_uj, core_energy_uj }
+        MsrEnergy {
+            package_energy_uj: package_next - package_prev,
+            core_energy_uj: core_next - core_prev,
+        }
     }
 
     fn elapsed_mut(&mut self) -> MsrEnergy {
-        let prev_package_energy_uj = self.package_energy_uj;
-        let prev_core_energy_uj = self.core_energy_uj;
+        let package_prev = self.package_energy_uj;
+        let core_prev = self.core_energy_uj;
 
-        let elapsed = self.elapsed();
+        let mut file = self.handle.lock().unwrap();
+        let package_next = read(&mut file, MsrOffset::PackageEnergy);
+        let core_next = read(&mut file, MsrOffset::CoreEnergy);
 
-        self.package_energy_uj = prev_package_energy_uj;
-        self.core_energy_uj = prev_core_energy_uj;
+        self.package_energy_uj = package_next;
+        self.core_energy_uj = core_next;
 
-        elapsed
+        MsrEnergy {
+            package_energy_uj: package_next - package_prev,
+            core_energy_uj: core_next - core_prev,
+        }
     }
 }
 

@@ -47,18 +47,22 @@ impl Package {
     }
 
     fn elapsed(&self) -> RaplEnergy {
-        let energy_uj = read_package(self.package_id).unwrap() - self.package_energy_uj;
+        let prev = self.package_energy_uj;
+        let next = read_package(self.package_id).unwrap();
+
         let subzones = self.subzones.iter().map(Subzone::elapsed).collect();
-        RaplEnergy { package_energy_uj: energy_uj, subzones }
+
+        RaplEnergy { package_energy_uj: next - prev, subzones }
     }
 
     fn elapsed_mut(&mut self) -> RaplEnergy {
-        let prev_energy_uj = self.package_energy_uj;
-        let energy_uj = read_package(self.package_id).unwrap() - self.package_energy_uj;
-        self.package_energy_uj = prev_energy_uj;
+        let prev = self.package_energy_uj;
+        let next = read_package(self.package_id).unwrap();
+        self.package_energy_uj = next;
 
         let subzones = self.subzones.iter_mut().map(Subzone::elapsed_mut).collect();
-        RaplEnergy { package_energy_uj: energy_uj, subzones }
+
+        RaplEnergy { package_energy_uj: next - prev, subzones }
     }
 }
 
@@ -69,14 +73,16 @@ impl Subzone {
     }
 
     fn elapsed(&self) -> u64 {
-        read_subzone(self.package_id, self.subzone_id).unwrap() - self.energy_uj
+        let prev = self.energy_uj;
+        let next = read_subzone(self.package_id, self.subzone_id).unwrap();
+        next - prev
     }
 
     fn elapsed_mut(&mut self) -> u64 {
-        let prev_energy_uj = self.energy_uj;
-        let elapsed = self.elapsed();
-        self.energy_uj = prev_energy_uj;
-        elapsed
+        let prev = self.energy_uj;
+        let next = read_subzone(self.package_id, self.subzone_id).unwrap();
+        self.energy_uj = next;
+        next - prev
     }
 }
 
