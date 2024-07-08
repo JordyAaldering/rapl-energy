@@ -1,8 +1,8 @@
 pub mod msr;
 pub mod rapl;
 
-pub use msr::Msr;
-pub use rapl::Rapl;
+pub use msr::{Msr, MsrEnergy};
+pub use rapl::{Rapl, RaplEnergy};
 
 pub type Serializable = dyn erased_serde::Serialize;
 
