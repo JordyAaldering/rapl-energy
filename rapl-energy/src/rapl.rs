@@ -17,7 +17,7 @@ struct Subzone {
     energy_uj: u64,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 #[derive(serde::Serialize)]
 pub struct RaplEnergy {
     package_energy_uj: u64,
@@ -70,7 +70,7 @@ impl Package {
     }
 
     fn headers(&self) -> Vec<String> {
-        let mut res = self.subzones.iter().map(Subzone::header).collect::<Vec<String>>();
+        let mut res = self.subzones.iter().map(Subzone::headers).collect::<Vec<String>>();
         res.insert(0, format!("intel-rapl:{}", self.package_id));
         res
     }
@@ -95,7 +95,7 @@ impl Subzone {
         next - prev
     }
 
-    fn header(&self) -> String {
+    fn headers(&self) -> String {
         format!("intel-rapl:{}:{}", self.package_id, self.subzone_id)
     }
 }

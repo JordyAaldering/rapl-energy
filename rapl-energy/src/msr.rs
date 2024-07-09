@@ -14,7 +14,7 @@ struct MsrCore {
     core_energy_uj: u64,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default)]
 #[derive(serde::Serialize)]
 pub struct MsrEnergy {
     package_energy_uj: u64,
@@ -43,7 +43,7 @@ impl Msr {
     }
 
     pub fn headers(&self) -> Vec<String> {
-        self.cores.iter().map(MsrCore::header).collect()
+        self.cores.iter().flat_map(MsrCore::headers).collect()
     }
 }
 
@@ -89,8 +89,11 @@ impl MsrCore {
         }
     }
 
-    fn header(&self) -> String {
-        format!("cpu{}", self.package_id)
+    fn headers(&self) -> Vec<String> {
+        vec![
+            format!("cpu{}:package", self.package_id),
+            format!("cpu{}:core", self.package_id),
+        ]
     }
 }
 
