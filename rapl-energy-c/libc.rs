@@ -23,5 +23,10 @@ pub extern "C" fn print_energy(energy_in: *mut Energy) {
 
     let energy = unsafe { Box::from_raw(energy_in) };
     let elapsed = energy.elapsed();
-    println!("{}", serde_json::to_string(&elapsed).unwrap());
+
+    let mut wtr = csv::WriterBuilder::new()
+        .has_headers(false)
+        .from_writer(std::io::stderr());
+    wtr.serialize(elapsed).unwrap();
+    wtr.flush().unwrap();
 }
