@@ -1,9 +1,8 @@
 use std::fs::OpenOptions;
 use std::io::Read;
-use std::time::Instant;
+use std::time::Duration;
 
 pub struct Rapl {
-    instant: Instant,
     packages: Vec<Package>,
 }
 
@@ -29,26 +28,22 @@ pub struct RaplEnergy {
 #[derive(Clone, Debug, Default)]
 #[derive(serde::Serialize)]
 pub struct RaplPower {
-    package_power_w: u64,
-    subzone_power_w: Vec<u64>,
+    package_power_w: f64,
+    subzone_power_w: Vec<f64>,
 }
 
 impl Rapl {
     pub fn now() -> Self {
-        Rapl {
-            instant: Instant:: now(),
-            packages: (0..u8::MAX).map_while(Package::now).collect(),
-        }
+        let packages = (0..u8::MAX).map_while(Package::now).collect();
+        Rapl { packages }
     }
 
     pub fn elapsed(&self) -> Vec<RaplEnergy> {
         self.packages.iter().map(Package::elapsed).collect()
     }
 
-    pub fn power(&mut self) -> Vec<RaplPower> {
-        let ms = self.instant.elapsed().as_micros() as u64;
-        self.instant = Instant::now();
-        self.packages.iter_mut().map(|package| package.power(ms)).collect()
+    pub fn power(&mut self, duration: Duration) -> Vec<RaplPower> {
+        self.packages.iter_mut().map(|package| package.power(duration)).collect()
     }
 
     pub fn headers(&self) -> Vec<String> {
@@ -70,12 +65,14 @@ impl Package {
         }
     }
 
-    fn power(&mut self, ms: u64) -> RaplPower {
+    fn power(&mut self, duration: Duration) -> RaplPower {
         let prev_package_energy_uj = self.package_energy_uj;
         self.package_energy_uj = read_package(self.package_id).unwrap();
+
+        let package_j = ((self.package_energy_uj - prev_package_energy_uj) as f64) / 1e6;
         RaplPower {
-            package_power_w: (self.package_energy_uj - prev_package_energy_uj) / ms,
-            subzone_power_w: self.subzones.iter_mut().map(|subzone| subzone.power(ms)).collect()
+            package_power_w: package_j / duration.as_secs_f64(),
+            subzone_power_w: self.subzones.iter_mut().map(|subzone| subzone.power(duration)).collect(),
         }
     }
 
@@ -98,10 +95,11 @@ impl Subzone {
         next - prev
     }
 
-    fn power(&mut self, ms: u64) -> u64 {
+    fn power(&mut self, duration: Duration) -> f64 {
         let prev_energy_uj = self.energy_uj;
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
-        (self.energy_uj - prev_energy_uj) / ms
+        let energy_j = ((self.energy_uj - prev_energy_uj) as f64) / 1e6;
+        energy_j / duration.as_secs_f64()
     }
 
     fn headers(&self) -> String {

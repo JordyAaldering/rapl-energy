@@ -2,10 +2,9 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::sync::Mutex;
-use std::time::Instant;
+use std::time::Duration;
 
 pub struct Msr {
-    instant: Instant,
     cores: Vec<MsrCore>,
 }
 
@@ -26,8 +25,8 @@ pub struct MsrEnergy {
 #[derive(Clone, Debug, Default)]
 #[derive(serde::Serialize)]
 pub struct MsrPower {
-    package_power_w: u64,
-    core_power_w: u64,
+    package_power_w: f64,
+    core_power_w: f64,
 }
 
 #[repr(u64)]
@@ -39,20 +38,16 @@ enum MsrOffset {
 
 impl Msr {
     pub fn now() -> Self {
-        Msr {
-            instant: Instant::now(),
-            cores: (0..u8::MAX).map_while(MsrCore::now).collect(),
-        }
+        let cores = (0..u8::MAX).map_while(MsrCore::now).collect();
+        Msr { cores }
     }
 
     pub fn elapsed(&self) -> Vec<MsrEnergy> {
         self.cores.iter().map(MsrCore::elapsed).collect()
     }
 
-    pub fn power(&mut self) -> Vec<MsrPower> {
-        let ms = self.instant.elapsed().as_micros() as u64;
-        self.instant = Instant::now();
-        self.cores.iter_mut().map(|core| core.power(ms)).collect()
+    pub fn power(&mut self, duration: Duration) -> Vec<MsrPower> {
+        self.cores.iter_mut().map(|core| core.power(duration)).collect()
     }
 
     pub fn headers(&self) -> Vec<String> {
@@ -80,7 +75,7 @@ impl MsrCore {
         }
     }
 
-    fn power(&mut self, ms: u64) -> MsrPower {
+    fn power(&mut self, duration: Duration) -> MsrPower {
         let package_prev = self.package_energy_uj;
         let core_prev = self.core_energy_uj;
 
@@ -88,9 +83,11 @@ impl MsrCore {
         self.package_energy_uj = read(&mut file, MsrOffset::PackageEnergy);
         self.core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
+        let package_j = ((self.package_energy_uj - package_prev) as f64) / 1e6;
+        let core_j = ((self.core_energy_uj - core_prev) as f64) / 1e6;
         MsrPower {
-            package_power_w: (self.package_energy_uj - package_prev) / ms,
-            core_power_w: (self.core_energy_uj - core_prev) / ms,
+            package_power_w: package_j / duration.as_secs_f64(),
+            core_power_w: core_j / duration.as_secs_f64(),
         }
     }
 

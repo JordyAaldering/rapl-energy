@@ -1,6 +1,8 @@
 pub mod msr;
 pub mod rapl;
 
+use std::time::Duration;
+
 pub use msr::{Msr, MsrEnergy};
 pub use rapl::{Rapl, RaplEnergy};
 
@@ -29,10 +31,10 @@ impl Energy {
         }
     }
 
-    pub fn elapsed_mut(&mut self) -> Box<Serializable> {
+    pub fn power(&mut self, duration: Duration) -> Box<Serializable> {
         match self {
-            Energy::Msr(msr) => Box::new(msr.power()),
-            Energy::Rapl(rapl) => Box::new(rapl.power()),
+            Energy::Msr(msr) => Box::new(msr.power(duration)),
+            Energy::Rapl(rapl) => Box::new(rapl.power(duration)),
         }
     }
 }
