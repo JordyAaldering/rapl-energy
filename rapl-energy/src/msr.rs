@@ -89,8 +89,8 @@ impl MsrCore {
         self.core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
         MsrPower {
-            package_power_w: ms / (self.package_energy_uj - package_prev),
-            core_power_w: ms / (self.core_energy_uj - core_prev),
+            package_power_w: (self.package_energy_uj - package_prev) / ms,
+            core_power_w: (self.core_energy_uj - core_prev) / ms,
         }
     }
 

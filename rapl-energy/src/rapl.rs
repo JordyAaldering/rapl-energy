@@ -71,10 +71,10 @@ impl Package {
     }
 
     fn power(&mut self, ms: u64) -> RaplPower {
-        let prev = self.package_energy_uj;
+        let prev_package_energy_uj = self.package_energy_uj;
         self.package_energy_uj = read_package(self.package_id).unwrap();
         RaplPower {
-            package_power_w: ms * (self.package_energy_uj - prev),
+            package_power_w: (self.package_energy_uj - prev_package_energy_uj) / ms,
             subzone_power_w: self.subzones.iter_mut().map(|subzone| subzone.power(ms)).collect()
         }
     }
@@ -101,7 +101,7 @@ impl Subzone {
     fn power(&mut self, ms: u64) -> u64 {
         let prev_energy_uj = self.energy_uj;
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
-        ms * (self.energy_uj - prev_energy_uj)
+        (self.energy_uj - prev_energy_uj) / ms
     }
 
     fn headers(&self) -> String {
