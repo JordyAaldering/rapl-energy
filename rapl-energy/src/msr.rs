@@ -53,12 +53,10 @@ impl Msr {
         let time_unit   = (units & TIME_UNIT_MASK)   >> 16;
         let energy_unit = (units & ENERGY_UNIT_MASK) >> 8;
         let power_unit  = (units & POWER_UNIT_MASK)  >> 0;
-        println!("{}, {}, {}", time_unit, energy_unit, power_unit);
 
         let time_unit   = 0.5f64.powi(time_unit   as i32);
         let energy_unit = 0.5f64.powi(energy_unit as i32);
         let power_unit  = 0.5f64.powi(power_unit  as i32);
-        println!("{}, {}, {}", time_unit, energy_unit, power_unit);
 
         let cores = (0..u8::MAX).map_while(MsrCore::now).collect();
         Msr { time_unit, energy_unit, power_unit, cores }
