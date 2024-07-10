@@ -2,9 +2,9 @@ all:
 	cargo build --release
 
 install:
-	cp ../target/release/librapl_energy_c.a /usr/local/lib/
-	cp rapl_energy_c.h /usr/local/include/
+	cp ../target/release/librapl_energy.a /usr/local/lib/
+	cp rapl_energy.h /usr/local/include/
 
 uninstall:
-	rm /usr/local/lib/librapl_energy_c.a
-	rm /usr/local/include/rapl_energy_c.h
+	rm /usr/local/lib/librapl_energy.a
+	rm /usr/local/include/rapl_energy.h

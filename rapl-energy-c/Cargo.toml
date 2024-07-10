@@ -3,7 +3,7 @@ name = "rapl-energy-c"
 edition = "2021"
 
 [lib]
-name = "rapl_energy_c"
+name = "rapl_energy"
 path = "libc.rs"
 crate-type = ["staticlib"]
 

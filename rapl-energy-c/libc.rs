@@ -26,6 +26,7 @@ pub extern "C" fn print_energy(energy_in: *mut Energy) {
 
     let mut wtr = csv::WriterBuilder::new()
         .has_headers(false)
+        .terminator(csv::Terminator::Any(',' as u8))
         .from_writer(std::io::stderr());
     wtr.serialize(elapsed).unwrap();
     wtr.flush().unwrap();
