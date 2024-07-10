@@ -31,8 +31,8 @@ impl Energy {
 
     pub fn elapsed_mut(&mut self) -> Box<Serializable> {
         match self {
-            Energy::Msr(msr) => Box::new(msr.elapsed_mut()),
-            Energy::Rapl(rapl) => Box::new(rapl.elapsed_mut()),
+            Energy::Msr(msr) => Box::new(msr.power()),
+            Energy::Rapl(rapl) => Box::new(rapl.power()),
         }
     }
 }

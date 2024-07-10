@@ -1,7 +1,9 @@
 use std::fs::OpenOptions;
 use std::io::Read;
+use std::time::Instant;
 
 pub struct Rapl {
+    instant: Instant,
     packages: Vec<Package>,
 }
 
@@ -21,21 +23,32 @@ struct Subzone {
 #[derive(serde::Serialize)]
 pub struct RaplEnergy {
     package_energy_uj: u64,
-    subzones: Vec<u64>,
+    subzone_energy_uj: Vec<u64>,
+}
+
+#[derive(Clone, Debug, Default)]
+#[derive(serde::Serialize)]
+pub struct RaplPower {
+    package_power_w: u64,
+    subzone_power_w: Vec<u64>,
 }
 
 impl Rapl {
     pub fn now() -> Self {
-        let packages = (0..u8::MAX).map_while(Package::now).collect();
-        Rapl { packages }
+        Rapl {
+            instant: Instant:: now(),
+            packages: (0..u8::MAX).map_while(Package::now).collect(),
+        }
     }
 
     pub fn elapsed(&self) -> Vec<RaplEnergy> {
         self.packages.iter().map(Package::elapsed).collect()
     }
 
-    pub fn elapsed_mut(&mut self) -> Vec<RaplEnergy> {
-        self.packages.iter_mut().map(Package::elapsed_mut).collect()
+    pub fn power(&mut self) -> Vec<RaplPower> {
+        let ms = self.instant.elapsed().as_micros() as u64;
+        self.instant = Instant::now();
+        self.packages.iter_mut().map(|package| package.power(ms)).collect()
     }
 
     pub fn headers(&self) -> Vec<String> {
@@ -51,22 +64,19 @@ impl Package {
     }
 
     fn elapsed(&self) -> RaplEnergy {
-        let prev = self.package_energy_uj;
-        let next = read_package(self.package_id).unwrap();
-
-        let subzones = self.subzones.iter().map(Subzone::elapsed).collect();
-
-        RaplEnergy { package_energy_uj: next - prev, subzones }
+        RaplEnergy {
+            package_energy_uj: read_package(self.package_id).unwrap() - self.package_energy_uj,
+            subzone_energy_uj: self.subzones.iter().map(Subzone::elapsed).collect(),
+        }
     }
 
-    fn elapsed_mut(&mut self) -> RaplEnergy {
+    fn power(&mut self, ms: u64) -> RaplPower {
         let prev = self.package_energy_uj;
-        let next = read_package(self.package_id).unwrap();
-        self.package_energy_uj = next;
-
-        let subzones = self.subzones.iter_mut().map(Subzone::elapsed_mut).collect();
-
-        RaplEnergy { package_energy_uj: next - prev, subzones }
+        self.package_energy_uj = read_package(self.package_id).unwrap();
+        RaplPower {
+            package_power_w: ms * (self.package_energy_uj - prev),
+            subzone_power_w: self.subzones.iter_mut().map(|subzone| subzone.power(ms)).collect()
+        }
     }
 
     fn headers(&self) -> Vec<String> {
@@ -88,11 +98,10 @@ impl Subzone {
         next - prev
     }
 
-    fn elapsed_mut(&mut self) -> u64 {
-        let prev = self.energy_uj;
-        let next = read_subzone(self.package_id, self.subzone_id).unwrap();
-        self.energy_uj = next;
-        next - prev
+    fn power(&mut self, ms: u64) -> u64 {
+        let prev_energy_uj = self.energy_uj;
+        self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
+        ms * (self.energy_uj - prev_energy_uj)
     }
 
     fn headers(&self) -> String {

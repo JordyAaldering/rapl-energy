@@ -2,8 +2,10 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::sync::Mutex;
+use std::time::Instant;
 
 pub struct Msr {
+    instant: Instant,
     cores: Vec<MsrCore>,
 }
 
@@ -21,6 +23,13 @@ pub struct MsrEnergy {
     core_energy_uj: u64,
 }
 
+#[derive(Clone, Debug, Default)]
+#[derive(serde::Serialize)]
+pub struct MsrPower {
+    package_power_w: u64,
+    core_power_w: u64,
+}
+
 #[repr(u64)]
 enum MsrOffset {
     //PowerUnit     = 0xC0010299,
@@ -30,16 +39,20 @@ enum MsrOffset {
 
 impl Msr {
     pub fn now() -> Self {
-        let cores = (0..u8::MAX).map_while(MsrCore::now).collect();
-        Msr { cores }
+        Msr {
+            instant: Instant::now(),
+            cores: (0..u8::MAX).map_while(MsrCore::now).collect(),
+        }
     }
 
     pub fn elapsed(&self) -> Vec<MsrEnergy> {
         self.cores.iter().map(MsrCore::elapsed).collect()
     }
 
-    pub fn elapsed_mut(&mut self) -> Vec<MsrEnergy> {
-        self.cores.iter_mut().map(MsrCore::elapsed_mut).collect()
+    pub fn power(&mut self) -> Vec<MsrPower> {
+        let ms = self.instant.elapsed().as_micros() as u64;
+        self.instant = Instant::now();
+        self.cores.iter_mut().map(|core| core.power(ms)).collect()
     }
 
     pub fn headers(&self) -> Vec<String> {
@@ -50,42 +63,34 @@ impl Msr {
 impl MsrCore {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
-        let mut file = OpenOptions::new().read(true).write(true).open(&path).ok()?;
-        let package_energy_uj = read(&mut file, MsrOffset::PackageEnergy);
-        let core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
-
-        let handle = Mutex::new(file);
-        Some(MsrCore { package_id, handle, package_energy_uj, core_energy_uj })
+        let mut file = OpenOptions::new().read(true).open(&path).ok()?;
+        Some(MsrCore {
+            package_id,
+            package_energy_uj: read(&mut file, MsrOffset::PackageEnergy),
+            core_energy_uj: read(&mut file, MsrOffset::CoreEnergy),
+            handle: Mutex::new(file),
+        })
     }
 
     fn elapsed(&self) -> MsrEnergy {
-        let package_prev = self.package_energy_uj;
-        let core_prev = self.core_energy_uj;
-
         let mut file = self.handle.lock().unwrap();
-        let package_next = read(&mut file, MsrOffset::PackageEnergy);
-        let core_next = read(&mut file, MsrOffset::CoreEnergy);
-
         MsrEnergy {
-            package_energy_uj: package_next - package_prev,
-            core_energy_uj: core_next - core_prev,
+            package_energy_uj: read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_uj,
+            core_energy_uj: read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_uj,
         }
     }
 
-    fn elapsed_mut(&mut self) -> MsrEnergy {
+    fn power(&mut self, ms: u64) -> MsrPower {
         let package_prev = self.package_energy_uj;
         let core_prev = self.core_energy_uj;
 
         let mut file = self.handle.lock().unwrap();
-        let package_next = read(&mut file, MsrOffset::PackageEnergy);
-        let core_next = read(&mut file, MsrOffset::CoreEnergy);
+        self.package_energy_uj = read(&mut file, MsrOffset::PackageEnergy);
+        self.core_energy_uj = read(&mut file, MsrOffset::CoreEnergy);
 
-        self.package_energy_uj = package_next;
-        self.core_energy_uj = core_next;
-
-        MsrEnergy {
-            package_energy_uj: package_next - package_prev,
-            core_energy_uj: core_next - core_prev,
+        MsrPower {
+            package_power_w: ms / (self.package_energy_uj - package_prev),
+            core_power_w: ms / (self.core_energy_uj - core_prev),
         }
     }
 
