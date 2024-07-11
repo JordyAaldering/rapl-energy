@@ -9,6 +9,9 @@ repository = "https://github.com/JordyAaldering/rapl-energy"
 license = "Apache-2.0"
 readme = "README.md"
 
+[lib]
+crate-type = ["lib", "staticlib"]
+
 [features]
 default = ["url"]
 url = ["dep:ureq"]

@@ -6,7 +6,7 @@ debug:
 release:
 	cargo build --release
 
-install: release
+install:
 	cp target/release/librapl_energy.a /usr/local/lib/
 	cp rapl_energy.h /usr/local/include/
 
