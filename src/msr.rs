@@ -40,15 +40,15 @@ enum MsrOffset {
     PackageEnergy = 0xC001029B,
 }
 
-const TIME_UNIT_MASK: u64   = 0xF0000;
-const ENERGY_UNIT_MASK: u64 = 0x01F00;
-const POWER_UNIT_MASK: u64  = 0x0000F;
-
 impl Msr {
     pub fn now() -> Self {
         let path = format!("/dev/cpu/0/msr");
         let mut file = OpenOptions::new().read(true).open(&path).unwrap();
         let units = read(&mut file, MsrOffset::PowerUnit);
+
+        const TIME_UNIT_MASK: u64   = 0xF0000;
+        const ENERGY_UNIT_MASK: u64 = 0x01F00;
+        const POWER_UNIT_MASK: u64  = 0x0000F;
 
         let time_unit   = (units & TIME_UNIT_MASK)   >> 16;
         let energy_unit = (units & ENERGY_UNIT_MASK) >> 8;

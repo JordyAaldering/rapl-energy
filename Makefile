@@ -1,8 +1,13 @@
-all:
+all: debug release
+
+debug:
+	cargo build
+
+release:
 	cargo build --release
 
-install:
-	cp ../target/release/librapl_energy.a /usr/local/lib/
+install: release
+	cp target/release/librapl_energy.a /usr/local/lib/
 	cp rapl_energy.h /usr/local/include/
 
 uninstall:
