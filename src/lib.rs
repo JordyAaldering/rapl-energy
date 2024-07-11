@@ -69,6 +69,18 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
     }
 }
 
+#[cfg(feature = "url")]
+#[no_mangle]
+pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
+    let url = std::env::var("ENERGY_STATS").unwrap();
+    let header = "X-Electricity-Consumed-Total".to_string();
+    let ina = Energy::url(url, header);
+
+    unsafe {
+        *ina_out = Box::into_raw(Box::new(ina));
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn print_energy(energy_in: *mut Energy) {
     if energy_in.is_null() {
