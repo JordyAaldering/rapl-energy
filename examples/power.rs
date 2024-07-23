@@ -6,13 +6,16 @@ use rapl_energy::Energy;
 fn main() {
     const DURATION: Duration = Duration::from_millis(50);
 
-    let mut msr = Energy::msr();
+    let mut rapl = Energy::rapl();
 
     for _ in 0..10 {
         thread::sleep(DURATION);
 
-        let power = msr.power(DURATION);
+        let power = rapl.power(DURATION);
 
-        println!("{:?}", power);
+        println!("{}", power.values()
+                            .map(f64::to_string)
+                            .collect::<Vec<String>>()
+                            .join(", "));
     }
 }

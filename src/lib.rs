@@ -55,7 +55,7 @@ impl Energy {
 }
 
 #[no_mangle]
-pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
+pub extern "C" fn msr(msr_out: *mut *mut Energy) {
     let msr = Box::into_raw(Box::new(Energy::msr()));
     unsafe {
         *msr_out = msr;
@@ -63,7 +63,7 @@ pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
 }
 
 #[no_mangle]
-pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
+pub extern "C" fn rapl(rapl_out: *mut *mut Energy) {
     let rapl = Box::into_raw(Box::new(Energy::rapl()));
     unsafe {
         *rapl_out = rapl;
@@ -72,7 +72,7 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
 
 #[cfg(feature = "url")]
 #[no_mangle]
-pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
+pub extern "C" fn ina(ina_out: *mut *mut Energy) {
     let url = std::env::var("ENERGY_STATS").unwrap();
     let header = "X-Electricity-Consumed-Total".to_string();
     let ina = Box::into_raw(Box::new(Energy::url(url, header)));
@@ -82,13 +82,36 @@ pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
 }
 
 #[no_mangle]
-pub extern "C" fn print_energy(energy_in: *mut Energy) {
-    if energy_in.is_null() {
+pub extern "C" fn elapsed(energy: *mut Energy, elapsed_out: *mut *mut f64) -> usize {
+    if energy.is_null() {
+        eprintln!("nullptr");
+        return 0;
+    }
+
+    let energy = unsafe { Box::from_raw(energy) };
+    let elapsed = energy.elapsed();
+    let size = elapsed.len();
+
+    let mut elapsed = elapsed.into_values().collect::<Vec<f64>>();
+    unsafe {
+        *elapsed_out = elapsed.as_mut_ptr();
+    }
+
+    size
+}
+
+#[no_mangle]
+pub extern "C" fn print_energy(energy: *mut Energy) {
+    if energy.is_null() {
         eprintln!("nullptr");
         return;
     }
 
-    let energy = unsafe { Box::from_raw(energy_in) };
+    let energy = unsafe { Box::from_raw(energy) };
     let elapsed = energy.elapsed();
-    println!("{:?}", elapsed);
+
+    println!("{}", elapsed.values()
+                          .map(f64::to_string)
+                          .collect::<Vec<String>>()
+                          .join(", "));
 }
