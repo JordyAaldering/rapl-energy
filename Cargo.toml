@@ -13,8 +13,8 @@ readme = "README.md"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [features]
-default = ["url"]
-url = ["dep:ureq"]
+default = ["http"]
+http = ["dep:ureq"]
 
 [dependencies]
 indexmap = "2.2.6"

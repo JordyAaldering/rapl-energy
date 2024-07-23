@@ -1,12 +1,12 @@
 pub mod msr;
 pub mod rapl;
-#[cfg(feature = "url")]
-pub mod url;
+#[cfg(feature = "http")]
+pub mod http;
 
 pub use msr::Msr;
 pub use rapl::Rapl;
-#[cfg(feature = "url")]
-pub use url::Url;
+#[cfg(feature = "http")]
+pub use http::Http;
 
 use indexmap::IndexMap;
 use std::time::Duration;
@@ -14,8 +14,8 @@ use std::time::Duration;
 pub enum Energy {
     Msr(Msr),
     Rapl(Rapl),
-    #[cfg(feature = "url")]
-    Url(Url),
+    #[cfg(feature = "http")]
+    Ureq(Http),
 }
 
 impl Energy {
@@ -29,18 +29,18 @@ impl Energy {
         Energy::Rapl(rapl)
     }
 
-    #[cfg(feature = "url")]
+    #[cfg(feature = "http")]
     pub fn url(url: String, header: String) -> Self {
-        let url = Url::now(url, header);
-        Energy::Url(url)
+        let url = Http::now(url, header);
+        Energy::Ureq(url)
     }
 
     pub fn elapsed(&self) -> IndexMap<String, f64> {
         match self {
             Energy::Msr(msr) => msr.elapsed(),
             Energy::Rapl(rapl) => rapl.elapsed(),
-            #[cfg(feature = "url")]
-            Energy::Url(url) => url.elapsed(),
+            #[cfg(feature = "http")]
+            Energy::Ureq(url) => url.elapsed(),
         }
     }
 
@@ -48,8 +48,8 @@ impl Energy {
         match self {
             Energy::Msr(msr) => msr.power(duration),
             Energy::Rapl(rapl) => rapl.power(duration),
-            #[cfg(feature = "url")]
-            Energy::Url(url) => url.power(duration),
+            #[cfg(feature = "http")]
+            Energy::Ureq(url) => url.power(duration),
         }
     }
 }
@@ -70,7 +70,7 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
     }
 }
 
-#[cfg(feature = "url")]
+#[cfg(feature = "http")]
 #[no_mangle]
 pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
     let url = std::env::var("ENERGY_STATS").unwrap();
