@@ -25,5 +25,5 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/release/librapl_energy.(a|so)
+        file: target/release/librapl_energy.{a,so}
         file_glob: true
