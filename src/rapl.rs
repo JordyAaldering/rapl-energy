@@ -90,7 +90,7 @@ fn read_package(package_id: u8) -> Option<f64> {
 }
 
 fn read_subzone(package_id: u8, subzone_id: u8) -> Option<f64> {
-    read(&format!("/sys/class/powercap/intel-rapl:{}:{}/energy_uj", package_id, subzone_id))
+    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/energy_uj", package_id, package_id, subzone_id))
 }
 
 fn read(path: &String) -> Option<f64> {
