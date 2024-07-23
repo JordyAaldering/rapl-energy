@@ -10,18 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
     - name: Build
       run: cargo build --release
-    - uses: actions/upload-artifact@v4
+    - name: Release
+      uses: svenstaro/upload-release-action@v2
       with:
-        name: rapl_energy.h
-        path: target/rapl_energy.h
-    - uses: actions/upload-artifact@v4
-      with:
-        name: librapl_energy.a
-        path: target/release/librapl_energy.a
-    - uses: actions/upload-artifact@v4
-      with:
-        name: librapl_energy.so
-        path: target/release/librapl_energy.so
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: target/(rapl_energy.h|release/librapl_energy.(so|a))
+        file_glob: true
