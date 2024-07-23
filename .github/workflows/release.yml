@@ -1,15 +1,10 @@
-name: Build
+name: Release
 
 on:
-  push:
-    branches: ["main"]
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
-
-permissions:
-  contents: read
 
 jobs:
   build:
@@ -24,6 +19,8 @@ jobs:
     - name: Release
       uses: svenstaro/upload-release-action@v2
       with:
+        release_name: Release
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/release/librapl_energy.{a,so}
+        file: target/{rapl_energy.h,release/librapl_energy.{a,so}}
         file_glob: true
+        overwrite: true
