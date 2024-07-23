@@ -10,7 +10,7 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [lib]
-crate-type = ["lib", "staticlib"]
+crate-type = ["lib", "cdylib", "staticlib"]
 
 [features]
 default = ["url"]
