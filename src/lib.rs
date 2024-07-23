@@ -56,15 +56,17 @@ impl Energy {
 
 #[no_mangle]
 pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
+    let msr = Box::into_raw(Box::new(Energy::msr()));
     unsafe {
-        *msr_out = Box::into_raw(Box::new(Energy::msr()));
+        *msr_out = msr;
     }
 }
 
 #[no_mangle]
 pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
+    let rapl = Box::into_raw(Box::new(Energy::rapl()));
     unsafe {
-        *rapl_out = Box::into_raw(Box::new(Energy::rapl()));
+        *rapl_out = rapl;
     }
 }
 
@@ -73,10 +75,9 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
 pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
     let url = std::env::var("ENERGY_STATS").unwrap();
     let header = "X-Electricity-Consumed-Total".to_string();
-    let ina = Energy::url(url, header);
-
+    let ina = Box::into_raw(Box::new(Energy::url(url, header)));
     unsafe {
-        *ina_out = Box::into_raw(Box::new(ina));
+        *ina_out = ina;
     }
 }
 
@@ -89,9 +90,5 @@ pub extern "C" fn print_energy(energy_in: *mut Energy) {
 
     let energy = unsafe { Box::from_raw(energy_in) };
     let elapsed = energy.elapsed();
-
-    for (_, v) in elapsed {
-        print!("{}, ", v);
-    }
-    println!();
+    println!("{:?}", elapsed);
 }
