@@ -4,10 +4,13 @@ use std::mem::size_of;
 use std::sync::Mutex;
 use std::time::Duration;
 
-#[allow(dead_code)]
+use indexmap::{indexmap, IndexMap};
+
 pub struct Msr {
+    #[allow(dead_code)]
     time_unit: f64,
     energy_unit: f64,
+    #[allow(dead_code)]
     power_unit: f64,
     cores: Vec<MsrCore>,
 }
@@ -17,20 +20,6 @@ struct MsrCore {
     handle: Mutex<File>,
     package_energy_j: u64,
     core_energy_j: u64,
-}
-
-#[derive(Clone, Debug, Default)]
-#[derive(serde::Serialize)]
-pub struct MsrEnergy {
-    package_energy_j: f64,
-    core_energy_j: f64,
-}
-
-#[derive(Clone, Debug, Default)]
-#[derive(serde::Serialize)]
-pub struct MsrPower {
-    package_power_w: f64,
-    core_power_w: f64,
 }
 
 #[repr(u64)]
@@ -62,16 +51,12 @@ impl Msr {
         Msr { time_unit, energy_unit, power_unit, cores }
     }
 
-    pub fn elapsed(&self) -> Vec<MsrEnergy> {
-        self.cores.iter().map(|core| core.elapsed(self.energy_unit)).collect()
+    pub fn elapsed(&self) -> IndexMap<String, f64> {
+        self.cores.iter().flat_map(|core| core.elapsed(self.energy_unit)).collect()
     }
 
-    pub fn power(&mut self, duration: Duration) -> Vec<MsrPower> {
-        self.cores.iter_mut().map(|core| core.power(self.energy_unit, duration)).collect()
-    }
-
-    pub fn headers(&self) -> Vec<String> {
-        self.cores.iter().flat_map(MsrCore::headers).collect()
+    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+        self.cores.iter_mut().flat_map(|core| core.power(self.energy_unit, duration)).collect()
     }
 }
 
@@ -87,15 +72,18 @@ impl MsrCore {
         })
     }
 
-    fn elapsed(&self, energy_unit: f64) -> MsrEnergy {
+    fn elapsed(&self, energy_unit: f64) -> IndexMap<String, f64> {
         let mut file = self.handle.lock().unwrap();
-        MsrEnergy {
-            package_energy_j: (read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_j) as f64 * energy_unit,
-            core_energy_j: (read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_j) as f64 * energy_unit,
+        let package_energy_j = (read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_j) as f64 * energy_unit;
+        let core_energy_j = (read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_j) as f64 * energy_unit;
+
+        indexmap!{
+            format!("cpu{}:package", self.package_id) => package_energy_j,
+            format!("cpu{}:core", self.package_id) => core_energy_j,
         }
     }
 
-    fn power(&mut self, energy_unit: f64, duration: Duration) -> MsrPower {
+    fn power(&mut self, energy_unit: f64, duration: Duration) -> IndexMap<String, f64> {
         let package_prev = self.package_energy_j;
         let core_prev = self.core_energy_j;
 
@@ -105,17 +93,13 @@ impl MsrCore {
 
         let package_j = (self.package_energy_j - package_prev) as f64 * energy_unit;
         let core_j = (self.core_energy_j - core_prev) as f64 * energy_unit;
-        MsrPower {
-            package_power_w: package_j / duration.as_secs_f64(),
-            core_power_w: core_j / duration.as_secs_f64(),
-        }
-    }
+        let package_power_w = package_j / duration.as_secs_f64();
+        let core_power_w = core_j / duration.as_secs_f64();
 
-    fn headers(&self) -> Vec<String> {
-        vec![
-            format!("cpu{}:package", self.package_id),
-            format!("cpu{}:core", self.package_id),
-        ]
+        indexmap!{
+            format!("cpu{}:package", self.package_id) => package_power_w,
+            format!("cpu{}:core", self.package_id) => core_power_w,
+        }
     }
 }
 

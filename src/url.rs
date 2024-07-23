@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use indexmap::{indexmap, IndexMap};
+
 #[allow(dead_code)]
 pub struct Url {
     agent: ureq::Agent,
@@ -22,15 +24,21 @@ impl Url {
         Url { agent, url, header, energy }
     }
 
-    pub fn elapsed(&self) -> f64 {
+    pub fn elapsed(&self) -> IndexMap<String, f64> {
         let energy = read(&self.agent, &self.url, &self.header).unwrap();
-        energy - self.energy
+        let energy = energy - self.energy;
+        indexmap!{
+            self.header.clone() => energy,
+        }
     }
 
-    pub fn power(&mut self, duration: Duration) -> f64 {
+    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
         let prev_energy = self.energy;
         self.energy = read(&self.agent, &self.url, &self.header).unwrap();
-        (self.energy - prev_energy) / duration.as_secs_f64()
+        let energy = (self.energy - prev_energy) / duration.as_secs_f64();
+        indexmap!{
+            self.header.clone() => energy,
+        }
     }
 }
 

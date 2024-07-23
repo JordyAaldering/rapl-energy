@@ -3,14 +3,13 @@ pub mod rapl;
 #[cfg(feature = "url")]
 pub mod url;
 
-use std::time::Duration;
-
-pub use msr::{Msr, MsrEnergy};
-pub use rapl::{Rapl, RaplEnergy};
+pub use msr::Msr;
+pub use rapl::Rapl;
 #[cfg(feature = "url")]
 pub use url::Url;
 
-pub type Serializable = dyn erased_serde::Serialize;
+use indexmap::IndexMap;
+use std::time::Duration;
 
 pub enum Energy {
     Msr(Msr),
@@ -36,21 +35,21 @@ impl Energy {
         Energy::Url(url)
     }
 
-    pub fn elapsed(&self) -> Box<Serializable> {
+    pub fn elapsed(&self) -> IndexMap<String, f64> {
         match self {
-            Energy::Msr(msr) => Box::new(msr.elapsed()),
-            Energy::Rapl(rapl) => Box::new(rapl.elapsed()),
+            Energy::Msr(msr) => msr.elapsed(),
+            Energy::Rapl(rapl) => rapl.elapsed(),
             #[cfg(feature = "url")]
-            Energy::Url(url) => Box::new(url.elapsed()),
+            Energy::Url(url) => url.elapsed(),
         }
     }
 
-    pub fn power(&mut self, duration: Duration) -> Box<Serializable> {
+    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
         match self {
-            Energy::Msr(msr) => Box::new(msr.power(duration)),
-            Energy::Rapl(rapl) => Box::new(rapl.power(duration)),
+            Energy::Msr(msr) => msr.power(duration),
+            Energy::Rapl(rapl) => rapl.power(duration),
             #[cfg(feature = "url")]
-            Energy::Url(url) => Box::new(url.power(duration)),
+            Energy::Url(url) => url.power(duration),
         }
     }
 }
@@ -84,17 +83,15 @@ pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
 #[no_mangle]
 pub extern "C" fn print_energy(energy_in: *mut Energy) {
     if energy_in.is_null() {
-        println!("nullptr");
+        eprintln!("nullptr");
         return;
     }
 
     let energy = unsafe { Box::from_raw(energy_in) };
     let elapsed = energy.elapsed();
 
-    let mut wtr = csv::WriterBuilder::new()
-        .has_headers(false)
-        .terminator(csv::Terminator::Any(',' as u8))
-        .from_writer(std::io::stdout());
-    wtr.serialize(elapsed).unwrap();
-    wtr.flush().unwrap();
+    for (_, v) in elapsed {
+        print!("{}, ", v);
+    }
+    println!();
 }

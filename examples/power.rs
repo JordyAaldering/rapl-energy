@@ -6,10 +6,6 @@ use rapl_energy::Energy;
 fn main() {
     const DURATION: Duration = Duration::from_millis(50);
 
-    let mut wtr = csv::WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(std::io::stdout());
-
     let mut msr = Energy::msr();
 
     for _ in 0..10 {
@@ -17,8 +13,6 @@ fn main() {
 
         let power = msr.power(DURATION);
 
-        wtr.serialize(power).unwrap();
+        println!("{:?}", power);
     }
-
-    wtr.flush().unwrap();
 }

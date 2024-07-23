@@ -9,10 +9,5 @@ fn main() {
     thread::sleep(Duration::from_secs(1));
 
     let elapsed = rapl.elapsed();
-
-    let mut wtr = csv::WriterBuilder::new()
-        .has_headers(false)
-        .from_writer(std::io::stdout());
-    wtr.serialize(elapsed).unwrap();
-    wtr.flush().unwrap();
+    println!("{:?}", elapsed);
 }
