@@ -18,9 +18,13 @@ jobs:
       run: cargo build --release --verbose
     - uses: actions/upload-artifact@v4
       with:
+        name: rapl_energy.h
+        path: target/rapl_energy.h
+    - uses: actions/upload-artifact@v4
+      with:
         name: librapl_energy.a
-        path: librapl_energy.a
+        path: target/release/librapl_energy.a
     - uses: actions/upload-artifact@v4
       with:
         name: librapl_energy.so
-        path: librapl_energy.so
+        path: target/release/librapl_energy.so

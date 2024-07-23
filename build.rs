@@ -5,5 +5,5 @@ fn main() {
         .with_language(cbindgen::Language::C)
         .generate()
         .expect("Unable to generate bindings")
-        .write_to_file("rapl_energy.h");
+        .write_to_file("target/rapl_energy.h");
 }
