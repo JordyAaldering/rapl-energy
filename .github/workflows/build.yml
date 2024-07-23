@@ -1,6 +1,8 @@
 name: Build
 
 on:
+  push:
+    branches: ["main"]
   workflow_dispatch:
 
 env:
@@ -23,5 +25,5 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/(rapl_energy.h|release/librapl_energy.(so|a))
+        file: target/release/librapl_energy.so
         file_glob: true
