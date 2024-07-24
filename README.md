@@ -1,6 +1,6 @@
 # Rapl Energy
 
-Small library for getting the CPU energy consumption from RAPL
+Small library for getting the CPU energy consumption from RAPL and friends.
 
 This project is very much still a work in progress, and is mainly intended for internal use.
 However I share it here should it be useful to anyone.
