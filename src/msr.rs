@@ -1,111 +1,137 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
-use std::mem::size_of;
+use std::mem;
 use std::sync::Mutex;
 use std::time::Duration;
 
 use indexmap::{indexmap, IndexMap};
 
 pub struct Msr {
-    #[allow(dead_code)]
-    time_unit: f64,
-    energy_unit: f64,
-    #[allow(dead_code)]
-    power_unit: f64,
-    cores: Vec<MsrCore>,
+    cores: Vec<Core>,
 }
 
-struct MsrCore {
+struct Core {
     package_id: u8,
     handle: Mutex<File>,
-    package_energy_j: u64,
-    core_energy_j: u64,
+    package_unit: u64,
+    core_unit: u64,
+    unit: Unit,
 }
 
 #[repr(u64)]
-enum MsrOffset {
+enum Offset {
     PowerUnit     = 0xC0010299,
     CoreEnergy    = 0xC001029A,
     PackageEnergy = 0xC001029B,
 }
 
+#[allow(unused)]
+struct Unit {
+    time: f64,
+    energy: f64,
+    power: f64,
+}
+
+#[repr(u64)]
+enum Mask {
+    TimeUnit   = 0b11110000000000000000,
+    EnergyUnit = 0b00000001111100000000,
+    PowerUnit  = 0b00000000000000001111,
+}
+
 impl Msr {
     pub fn now() -> Self {
-        let path = format!("/dev/cpu/0/msr");
-        let mut file = OpenOptions::new().read(true).open(&path).unwrap();
-        let units = read(&mut file, MsrOffset::PowerUnit);
-
-        const TIME_UNIT_MASK: u64   = 0xF0000;
-        const ENERGY_UNIT_MASK: u64 = 0x01F00;
-        const POWER_UNIT_MASK: u64  = 0x0000F;
-
-        let time_unit   = (units & TIME_UNIT_MASK)   >> 16;
-        let energy_unit = (units & ENERGY_UNIT_MASK) >> 8;
-        let power_unit  = (units & POWER_UNIT_MASK)  >> 0;
-
-        let time_unit   = 0.5f64.powi(time_unit   as i32);
-        let energy_unit = 0.5f64.powi(energy_unit as i32);
-        let power_unit  = 0.5f64.powi(power_unit  as i32);
-
-        let cores = (0..u8::MAX).map_while(MsrCore::now).collect();
-        Msr { time_unit, energy_unit, power_unit, cores }
+        let cores = (0..u8::MAX).map_while(Core::now).collect();
+        Msr { cores }
     }
 
     pub fn elapsed(&self) -> IndexMap<String, f64> {
-        self.cores.iter().flat_map(|core| core.elapsed(self.energy_unit)).collect()
+        self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
     pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
-        self.cores.iter_mut().flat_map(|core| core.power(self.energy_unit, duration)).collect()
+        self.cores
+            .iter_mut()
+            .flat_map(|core| core.power(duration))
+            .collect()
     }
 }
 
-impl MsrCore {
+impl Core {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
-        Some(MsrCore {
+        Some(Core {
             package_id,
-            package_energy_j: read(&mut file, MsrOffset::PackageEnergy),
-            core_energy_j: read(&mut file, MsrOffset::CoreEnergy),
+            unit: Unit::new(&mut file),
+            package_unit: read(&mut file, Offset::PackageEnergy),
+            core_unit: read(&mut file, Offset::CoreEnergy),
             handle: Mutex::new(file),
         })
     }
 
-    fn elapsed(&self, energy_unit: f64) -> IndexMap<String, f64> {
-        let mut file = self.handle.lock().unwrap();
-        let package_energy_j = (read(&mut file, MsrOffset::PackageEnergy) - self.package_energy_j) as f64 * energy_unit;
-        let core_energy_j = (read(&mut file, MsrOffset::CoreEnergy) - self.core_energy_j) as f64 * energy_unit;
+    fn elapsed(&self) -> IndexMap<String, f64> {
+        let (package_next, core_next) = self.read();
+        let package = package_next - self.package_unit;
+        let core = core_next - self.core_unit;
 
         indexmap!{
-            format!("cpu{}:package", self.package_id) => package_energy_j,
-            format!("cpu{}:core", self.package_id) => core_energy_j,
+            format!("cpu{}:package", self.package_id) => self.unit.joules(package),
+            format!("cpu{}:core", self.package_id) => self.unit.joules(core),
         }
     }
 
-    fn power(&mut self, energy_unit: f64, duration: Duration) -> IndexMap<String, f64> {
-        let package_prev = self.package_energy_j;
-        let core_prev = self.core_energy_j;
-
-        let mut file = self.handle.lock().unwrap();
-        self.package_energy_j = read(&mut file, MsrOffset::PackageEnergy);
-        self.core_energy_j = read(&mut file, MsrOffset::CoreEnergy);
-
-        let package_j = (self.package_energy_j - package_prev) as f64 * energy_unit;
-        let core_j = (self.core_energy_j - core_prev) as f64 * energy_unit;
-        let package_power_w = package_j / duration.as_secs_f64();
-        let core_power_w = core_j / duration.as_secs_f64();
+    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+        let (package_next, core_next) = self.read();
+        let package = package_next - self.package_unit;
+        let core = core_next - self.core_unit;
+        self.package_unit = package_next;
+        self.core_unit = core_next;
 
         indexmap!{
-            format!("cpu{}:package", self.package_id) => package_power_w,
-            format!("cpu{}:core", self.package_id) => core_power_w,
+            format!("cpu{}:package", self.package_id) => self.unit.watts(package, duration),
+            format!("cpu{}:core", self.package_id) => self.unit.watts(core, duration),
         }
+    }
+
+    fn read(&self) -> (u64, u64) {
+        let mut file = self.handle.lock().unwrap();
+        let package = read(&mut file, Offset::PackageEnergy);
+        let core = read(&mut file, Offset::CoreEnergy);
+        (package, core)
     }
 }
 
-fn read(file: &mut File, offset: MsrOffset) -> u64 {
+impl Unit {
+    pub fn new(file: &mut File) -> Self {
+        let units = read(file, Offset::PowerUnit);
+        Unit {
+            time: Mask::TimeUnit.mask(units),
+            energy: Mask::EnergyUnit.mask(units),
+            power: Mask::PowerUnit.mask(units),
+        }
+    }
+
+    pub fn joules(&self, unit: u64) -> f64 {
+        unit as f64 * self.energy
+    }
+
+    pub fn watts(&self, unit: u64, duration: Duration) -> f64 {
+        (unit as f64 * self.energy) / duration.as_secs_f64()
+    }
+}
+
+impl Mask {
+    pub fn mask(self, units: u64) -> f64 {
+        let mask = self as u64;
+        let unit = (units & mask) >> mask.trailing_zeros();
+        0.5f64.powi(unit as i32)
+    }
+}
+
+fn read(file: &mut File, offset: Offset) -> u64 {
     file.seek(SeekFrom::Start(offset as u64)).unwrap();
-    let mut buf = [0; size_of::<u64>()];
+    let mut buf = [0; mem::size_of::<u64>()];
     file.read_exact(&mut buf).unwrap();
     u64::from_le_bytes(buf)
 }
