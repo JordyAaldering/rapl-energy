@@ -1,6 +1,6 @@
 [package]
 name = "rapl-energy"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 categories = ["development-tools::profiling"]
 keywords = ["benchmarking", "energy", "sustainability"]
