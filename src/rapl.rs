@@ -39,8 +39,8 @@ impl Rapl {
 impl Package {
     fn now(package_id: u8) -> Option<Self> {
         let package_energy_uj = read_package(package_id)?;
-        let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
         let max_energy_range_uj = read_package_range(package_id);
+        let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
         Some(Package { package_id, max_energy_range_uj, package_energy_uj, subzones })
     }
 
