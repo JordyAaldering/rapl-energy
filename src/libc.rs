@@ -2,7 +2,8 @@ use crate::Energy;
 
 #[no_mangle]
 pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
-    let msr = Box::into_raw(Box::new(Energy::msr()));
+    let msr = Energy::msr().unwrap();
+    let msr = Box::into_raw(Box::new(msr));
     unsafe {
         *msr_out = msr;
     }
@@ -10,7 +11,8 @@ pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
 
 #[no_mangle]
 pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
-    let rapl = Box::into_raw(Box::new(Energy::rapl()));
+    let rapl = Energy::rapl().unwrap();
+    let rapl = Box::into_raw(Box::new(rapl));
     unsafe {
         *rapl_out = rapl;
     }
@@ -21,7 +23,8 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
 pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
     let url = std::env::var("ENERGY_STATS").unwrap();
     let header = "X-Electricity-Consumed-Total".to_string();
-    let ina = Box::into_raw(Box::new(Energy::url(url, header)));
+    let ina = Energy::url(url, header).unwrap();
+    let ina = Box::into_raw(Box::new(ina));
     unsafe {
         *ina_out = ina;
     }

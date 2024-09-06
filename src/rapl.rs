@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use std::fs::OpenOptions;
 use std::io::Read;
+use std::iter::once;
 use std::time::Duration;
 
 use crate::EnergyDuration;
@@ -23,14 +24,15 @@ struct Subzone {
     energy_uj: u64,
 }
 
-impl Rapl {
-    pub fn now() -> Self {
-        let packages = (0..u8::MAX).map_while(Package::now).collect();
-        Rapl { packages }
-    }
-}
-
 impl EnergyDuration for Rapl {
+    type Builder = ();
+
+    fn now(_: Self::Builder) -> Option<Box<Self>> {
+        let package0 = once(Package::now(0)?);
+        let packages = package0.chain((1..u8::MAX).map_while(Package::now)).collect();
+        Some(Box::new(Rapl { packages }))
+    }
+
     fn elapsed(&self) -> IndexMap<String, f64> {
         self.packages
             .iter()

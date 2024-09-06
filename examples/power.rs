@@ -6,7 +6,7 @@ use rapl_energy::Energy;
 fn main() {
     const DURATION: Duration = Duration::from_millis(50);
 
-    let mut rapl = Energy::rapl();
+    let mut rapl = Energy::rapl().unwrap();
 
     for _ in 0..10 {
         thread::sleep(DURATION);

@@ -1,5 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
+use std::iter::once;
 use std::mem;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -41,28 +42,15 @@ enum Mask {
     PowerUnit  = 0b00000000000000001111,
 }
 
-impl Msr {
-    pub fn now() -> Self {
-        let cores = (0..u8::MAX).map_while(Core::now).collect();
-        Msr { cores }
-    }
-
-    pub fn elapsed(&self) -> IndexMap<String, f64> {
-        self.cores
-            .iter()
-            .flat_map(Core::elapsed)
-            .collect()
-    }
-
-    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
-        self.cores
-            .iter_mut()
-            .flat_map(|core| core.power(duration))
-            .collect()
-    }
-}
-
 impl EnergyDuration for Msr {
+    type Builder = ();
+
+    fn now(_: Self::Builder) -> Option<Box<Self>> {
+        let core0 = once(Core::now(0)?);
+        let cores = core0.chain((1..u8::MAX).map_while(Core::now)).collect();
+        Some(Box::new(Msr { cores }))
+    }
+
     fn elapsed(&self) -> IndexMap<String, f64> {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }

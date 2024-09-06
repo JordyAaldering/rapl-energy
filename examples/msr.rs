@@ -4,7 +4,7 @@ use std::time::Duration;
 use rapl_energy::Energy;
 
 fn main() {
-    let msr = Energy::msr();
+    let msr = Energy::msr().unwrap();
 
     thread::sleep(Duration::from_secs(1));
 

@@ -25,20 +25,21 @@ pub enum Energy {
 }
 
 impl Energy {
-    pub fn msr() -> Self {
-        let msr = Msr::now();
-        Energy::Msr(msr)
+    pub fn msr() -> Option<Self> {
+        let msr = Msr::now(())?;
+        Some(Energy::Msr(*msr))
     }
 
-    pub fn rapl() -> Self {
-        let rapl = Rapl::now();
-        Energy::Rapl(rapl)
+    pub fn rapl() -> Option<Self> {
+        let rapl = Rapl::now(())?;
+        Some(Energy::Rapl(*rapl))
     }
 
     #[cfg(feature = "http")]
-    pub fn url(url: String, header: String) -> Self {
-        let url = Http::now(url, header);
-        Energy::Ureq(url)
+    pub fn url(url: String, header: String) -> Option<Self> {
+        let builder = http::HttpBuilder { header, path: url };
+        let url = Http::now(builder)?;
+        Some(Energy::Ureq(*url))
     }
 
     pub fn elapsed(&self) -> IndexMap<String, f64> {

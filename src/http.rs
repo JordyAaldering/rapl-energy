@@ -4,6 +4,11 @@ use indexmap::{indexmap, IndexMap};
 
 use crate::EnergyDuration;
 
+pub struct HttpBuilder {
+    pub path: String,
+    pub header: String,
+}
+
 pub struct Http {
     path: String,
     header: String,
@@ -11,8 +16,10 @@ pub struct Http {
     energy: f64,
 }
 
-impl Http {
-    pub fn now(path: String, header: String) -> Self {
+impl EnergyDuration for Http {
+    type Builder = HttpBuilder;
+
+    fn now(builder: Self::Builder) -> Option<Box<Self>> {
         let agent: ureq::Agent = ureq::AgentBuilder::new()
             .user_agent(&format!(
                 "{} {}/{}",
@@ -21,12 +28,10 @@ impl Http {
                 option_env!("CI_PIPELINE_IID").unwrap_or_default()
             ))
             .build();
-        let energy = read(&agent, &path, &header).unwrap();
-        Http { path, header, agent, energy }
+        let energy = read(&agent, &builder.path, &builder.header).unwrap();
+        Some(Box::new(Http { path: builder.path, header: builder.header, agent, energy }))
     }
-}
 
-impl EnergyDuration for Http {
     fn elapsed(&self) -> IndexMap<String, f64> {
         let energy = read(&self.agent, &self.path, &self.header).unwrap();
         let energy = energy - self.energy;
