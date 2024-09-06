@@ -6,6 +6,8 @@ use std::time::Duration;
 
 use indexmap::{indexmap, IndexMap};
 
+use crate::energy_duration::EnergyDuration;
+
 pub struct Msr {
     cores: Vec<Core>,
 }
@@ -46,10 +48,26 @@ impl Msr {
     }
 
     pub fn elapsed(&self) -> IndexMap<String, f64> {
-        self.cores.iter().flat_map(Core::elapsed).collect()
+        self.cores
+            .iter()
+            .flat_map(Core::elapsed)
+            .collect()
     }
 
     pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+        self.cores
+            .iter_mut()
+            .flat_map(|core| core.power(duration))
+            .collect()
+    }
+}
+
+impl EnergyDuration for Msr {
+    fn elapsed(&self) -> IndexMap<String, f64> {
+        self.cores.iter().flat_map(Core::elapsed).collect()
+    }
+
+    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
         self.cores
             .iter_mut()
             .flat_map(|core| core.power(duration))

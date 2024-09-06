@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use indexmap::{indexmap, IndexMap};
 
+use crate::EnergyDuration;
+
 pub struct Http {
     path: String,
     header: String,
@@ -22,8 +24,10 @@ impl Http {
         let energy = read(&agent, &path, &header).unwrap();
         Http { path, header, agent, energy }
     }
+}
 
-    pub fn elapsed(&self) -> IndexMap<String, f64> {
+impl EnergyDuration for Http {
+    fn elapsed(&self) -> IndexMap<String, f64> {
         let energy = read(&self.agent, &self.path, &self.header).unwrap();
         let energy = energy - self.energy;
         indexmap!{
@@ -31,7 +35,7 @@ impl Http {
         }
     }
 
-    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
         let prev_energy = self.energy;
         self.energy = read(&self.agent, &self.path, &self.header).unwrap();
         let energy = (self.energy - prev_energy) / duration.as_secs_f64();

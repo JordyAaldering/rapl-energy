@@ -1,3 +1,4 @@
+mod energy_duration;
 mod libc;
 
 pub mod msr;
@@ -10,8 +11,11 @@ pub use rapl::Rapl;
 #[cfg(feature = "http")]
 pub use http::Http;
 
-use indexmap::IndexMap;
+pub use energy_duration::EnergyDuration;
+
 use std::time::Duration;
+
+use indexmap::IndexMap;
 
 pub enum Energy {
     Msr(Msr),

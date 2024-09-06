@@ -3,6 +3,8 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::time::Duration;
 
+use crate::EnergyDuration;
+
 pub struct Rapl {
     packages: Vec<Package>,
 }
@@ -26,13 +28,21 @@ impl Rapl {
         let packages = (0..u8::MAX).map_while(Package::now).collect();
         Rapl { packages }
     }
+}
 
-    pub fn elapsed(&self) -> IndexMap<String, f64> {
-        self.packages.iter().flat_map(Package::elapsed).collect()
+impl EnergyDuration for Rapl {
+    fn elapsed(&self) -> IndexMap<String, f64> {
+        self.packages
+            .iter()
+            .flat_map(Package::elapsed)
+            .collect()
     }
 
-    pub fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
-        self.packages.iter_mut().flat_map(|p| p.power(duration)).collect()
+    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+        self.packages
+            .iter_mut()
+            .flat_map(|p| p.power(duration))
+            .collect()
     }
 }
 
