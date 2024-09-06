@@ -1,10 +1,10 @@
 use std::thread;
 use std::time::Duration;
 
-use rapl_energy::Energy;
+use rapl_energy::Rapl;
 
 fn main() {
-    let rapl = Energy::rapl().unwrap();
+    let rapl = Rapl::now().unwrap();
 
     thread::sleep(Duration::from_secs(1));
 

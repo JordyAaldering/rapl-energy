@@ -4,7 +4,7 @@ use std::io::Read;
 use std::iter::once;
 use std::time::Duration;
 
-use crate::EnergyDuration;
+use crate::Energy;
 
 pub struct Rapl {
     packages: Vec<Package>,
@@ -24,15 +24,15 @@ struct Subzone {
     energy_uj: u64,
 }
 
-impl EnergyDuration for Rapl {
-    type Builder = ();
-
-    fn now(_: Self::Builder) -> Option<Box<Self>> {
+impl Rapl {
+    pub fn now() -> Option<Box<dyn Energy>> {
         let package0 = once(Package::now(0)?);
         let packages = package0.chain((1..u8::MAX).map_while(Package::now)).collect();
         Some(Box::new(Rapl { packages }))
     }
+}
 
+impl Energy for Rapl {
     fn elapsed(&self) -> IndexMap<String, f64> {
         self.packages
             .iter()

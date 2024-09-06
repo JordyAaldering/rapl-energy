@@ -1,18 +1,16 @@
-use crate::Energy;
+use crate::*;
 
 #[no_mangle]
-pub extern "C" fn start_msr(msr_out: *mut *mut Energy) {
-    let msr = Energy::msr().unwrap();
-    let msr = Box::into_raw(Box::new(msr));
+pub extern "C" fn start_msr(msr_out: *mut Box<dyn Energy>) {
+    let msr = Msr::now().unwrap();
     unsafe {
         *msr_out = msr;
     }
 }
 
 #[no_mangle]
-pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
-    let rapl = Energy::rapl().unwrap();
-    let rapl = Box::into_raw(Box::new(rapl));
+pub extern "C" fn start_rapl(rapl_out: *mut Box<dyn Energy>) {
+    let rapl = Rapl::now().unwrap();
     unsafe {
         *rapl_out = rapl;
     }
@@ -20,18 +18,17 @@ pub extern "C" fn start_rapl(rapl_out: *mut *mut Energy) {
 
 #[cfg(feature = "http")]
 #[no_mangle]
-pub extern "C" fn start_ina(ina_out: *mut *mut Energy) {
+pub extern "C" fn start_ina(ina_out: *mut Box<dyn Energy>) {
     let url = std::env::var("ENERGY_STATS").unwrap();
     let header = "X-Electricity-Consumed-Total".to_string();
-    let ina = Energy::url(url, header).unwrap();
-    let ina = Box::into_raw(Box::new(ina));
+    let ina = Http::now(url, header).unwrap();
     unsafe {
         *ina_out = ina;
     }
 }
 
 #[no_mangle]
-pub extern "C" fn elapsed(energy: *mut Energy, elapsed_out: *mut *mut f64) -> usize {
+pub extern "C" fn elapsed(energy: *mut Box<dyn Energy>, elapsed_out: *mut *mut f64) -> usize {
     if energy.is_null() {
         eprintln!("nullptr");
         return 0;
@@ -52,7 +49,7 @@ pub extern "C" fn elapsed(energy: *mut Energy, elapsed_out: *mut *mut f64) -> us
 }
 
 #[no_mangle]
-pub extern "C" fn print_energy(energy: *mut Energy) {
+pub extern "C" fn print_energy(energy: *mut Box<dyn Energy>) {
     if energy.is_null() {
         eprintln!("nullptr");
         return;
@@ -69,7 +66,7 @@ pub extern "C" fn print_energy(energy: *mut Energy) {
 }
 
 #[no_mangle]
-pub extern "C" fn free_energy(energy: *mut Energy) {
+pub extern "C" fn free_energy(energy: *mut Box<dyn Energy>) {
     if energy.is_null() {
         eprintln!("nullptr");
         return;

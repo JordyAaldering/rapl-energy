@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use indexmap::{indexmap, IndexMap};
 
-use crate::energy_duration::EnergyDuration;
+use crate::Energy;
 
 pub struct Msr {
     cores: Vec<Core>,
@@ -42,15 +42,15 @@ enum Mask {
     PowerUnit  = 0b00000000000000001111,
 }
 
-impl EnergyDuration for Msr {
-    type Builder = ();
-
-    fn now(_: Self::Builder) -> Option<Box<Self>> {
+impl Msr {
+    pub fn now() -> Option<Box<dyn Energy>> {
         let core0 = once(Core::now(0)?);
         let cores = core0.chain((1..u8::MAX).map_while(Core::now)).collect();
         Some(Box::new(Msr { cores }))
     }
+}
 
+impl Energy for Msr {
     fn elapsed(&self) -> IndexMap<String, f64> {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
