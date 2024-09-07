@@ -3,7 +3,6 @@ use std::io::{Read, Seek, SeekFrom};
 use std::iter::once;
 use std::mem;
 use std::sync::Mutex;
-use std::time::Duration;
 
 use indexmap::{indexmap, IndexMap};
 
@@ -55,10 +54,10 @@ impl Energy for Msr {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
         self.cores
             .iter_mut()
-            .flat_map(|core| core.power(duration))
+            .flat_map(Core::elapsed_mut)
             .collect()
     }
 }
@@ -77,34 +76,28 @@ impl Core {
     }
 
     fn elapsed(&self) -> IndexMap<String, f64> {
-        let (package_next, core_next) = self.read();
-        let package = package_next - self.package_unit;
-        let core = core_next - self.core_unit;
-
-        indexmap!{
-            format!("cpu{}:package", self.package_id) => self.unit.joules(package),
-            format!("cpu{}:core", self.package_id) => self.unit.joules(core),
-        }
-    }
-
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
-        let (package_next, core_next) = self.read();
-        let package = package_next - self.package_unit;
-        let core = core_next - self.core_unit;
-        self.package_unit = package_next;
-        self.core_unit = core_next;
-
-        indexmap!{
-            format!("cpu{}:package", self.package_id) => self.unit.watts(package, duration),
-            format!("cpu{}:core", self.package_id) => self.unit.watts(core, duration),
-        }
-    }
-
-    fn read(&self) -> (u64, u64) {
         let mut file = self.handle.lock().unwrap();
         let package = read(&mut file, Offset::PackageEnergy);
         let core = read(&mut file, Offset::CoreEnergy);
-        (package, core)
+
+        indexmap!{
+            format!("cpu{}:package", self.package_id) => self.unit.joules(package - self.package_unit),
+            format!("cpu{}:core", self.package_id) => self.unit.joules(core - self.core_unit),
+        }
+    }
+
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+        let package_prev = self.package_unit;
+        let core_prev = self.core_unit;
+
+        let mut file = self.handle.lock().unwrap();
+        self.package_unit = read(&mut file, Offset::PackageEnergy);
+        self.core_unit = read(&mut file, Offset::CoreEnergy);
+
+        indexmap!{
+            format!("cpu{}:package", self.package_id) => self.unit.joules(self.package_unit - package_prev),
+            format!("cpu{}:core", self.package_id) => self.unit.joules(self.core_unit - core_prev),
+        }
     }
 }
 
@@ -120,10 +113,6 @@ impl Unit {
 
     pub fn joules(&self, unit: u64) -> f64 {
         unit as f64 * self.energy
-    }
-
-    pub fn watts(&self, unit: u64, duration: Duration) -> f64 {
-        (unit as f64 * self.energy) / duration.as_secs_f64()
     }
 }
 

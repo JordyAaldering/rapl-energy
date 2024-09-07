@@ -40,10 +40,10 @@ impl Energy for Rapl {
             .collect()
     }
 
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
         self.packages
             .iter_mut()
-            .flat_map(|p| p.power(duration))
+            .flat_map(Package::elapsed_mut)
             .collect()
     }
 }
@@ -69,16 +69,16 @@ impl Package {
         res
     }
 
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
         let package_uj_prev = self.package_energy_uj;
         self.package_energy_uj = read_package(self.package_id).unwrap();
         let package_uj = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
-        let package_power_w = (package_uj as f64 / 1e6) / duration.as_secs_f64();
 
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
-        res.insert(format!("intel-rapl:{}", self.package_id), package_power_w);
-        let subzone_energy_uj = self.subzones.iter_mut().map(|s| s.power(duration));
+        res.insert(format!("intel-rapl:{}", self.package_id), package_uj as f64);
+        let subzone_energy_uj = self.subzones.iter_mut().map(Subzone::elapsed_mut);
         res.extend(subzone_energy_uj);
+
         res
     }
 }
@@ -91,18 +91,18 @@ impl Subzone {
     }
 
     fn elapsed(&self) -> (String, f64) {
-        let prev = self.energy_uj;
-        let next = read_subzone(self.package_id, self.subzone_id).unwrap();
-        let energy_uj = rapl_diff(prev, next, self.max_energy_range_uj);
-        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy_uj as f64)
+        let energy_next = read_subzone(self.package_id, self.subzone_id).unwrap();
+        let energy = rapl_diff(self.energy_uj, energy_next, self.max_energy_range_uj);
+
+        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy as f64)
     }
 
-    fn power(&mut self, duration: Duration) -> (String, f64) {
-        let prev_energy_uj = self.energy_uj;
+    fn elapsed_mut(&mut self) -> (String, f64) {
+        let energy_prev = self.energy_uj;
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
-        let energy_uj = rapl_diff(prev_energy_uj, self.energy_uj, self.max_energy_range_uj);
-        let energy_uj = (energy_uj as f64 / 1e6) / duration.as_secs_f64();
-        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy_uj)
+        let energy = rapl_diff(energy_prev, self.energy_uj, self.max_energy_range_uj);
+
+        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy as f64)
     }
 }
 

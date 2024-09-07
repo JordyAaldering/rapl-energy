@@ -10,12 +10,10 @@ pub use rapl::Rapl;
 #[cfg(feature = "http")]
 pub use http::Http;
 
-use std::time::Duration;
-
 use indexmap::IndexMap;
 
 pub trait Energy {
     fn elapsed(&self) -> IndexMap<String, f64>;
 
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64>;
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64>;
 }

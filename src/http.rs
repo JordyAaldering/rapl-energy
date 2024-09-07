@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use indexmap::{indexmap, IndexMap};
 
 use crate::Energy;
@@ -29,18 +27,19 @@ impl Http {
 impl Energy for Http {
     fn elapsed(&self) -> IndexMap<String, f64> {
         let energy = read(&self.agent, &self.path, &self.header).unwrap();
-        let energy = energy - self.energy;
+
         indexmap!{
-            self.header.clone() => energy,
+            self.header.clone() => energy - self.energy,
         }
     }
 
-    fn power(&mut self, duration: Duration) -> IndexMap<String, f64> {
-        let prev_energy = self.energy;
+    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+        let energy_prev = self.energy;
+
         self.energy = read(&self.agent, &self.path, &self.header).unwrap();
-        let energy = (self.energy - prev_energy) / duration.as_secs_f64();
+
         indexmap!{
-            self.header.clone() => energy,
+            self.header.clone() => self.energy - energy_prev,
         }
     }
 }
