@@ -1,8 +1,8 @@
-use indexmap::IndexMap;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::iter::once;
-use std::time::Duration;
+
+use indexmap::IndexMap;
 
 use crate::Energy;
 
