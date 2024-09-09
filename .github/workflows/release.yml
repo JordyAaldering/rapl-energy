@@ -22,6 +22,6 @@ jobs:
       with:
         release_name: Release
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/release/{rapl_energy.h,librapl_energy.{a,so}}
+        file: target/release/{rapl_energy.h,librapl_energy.so}
         file_glob: true
         overwrite: true
