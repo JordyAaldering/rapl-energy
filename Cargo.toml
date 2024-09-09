@@ -10,14 +10,16 @@ license = "Apache-2.0"
 readme = "README.md"
 
 [lib]
-crate-type = ["lib", "cdylib", "staticlib"]
+crate-type = ["lib", "cdylib"]
 
 [features]
-default = ["http"]
+default = ["nvml", "http"]
+nvml = ["dep:nvml-wrapper"]
 http = ["dep:ureq"]
 
 [dependencies]
 indexmap = "2.2.6"
+nvml-wrapper = { version = "0.10.0", optional = true }
 ureq = { version = "2.10.0", optional = true }
 
 [build-dependencies]

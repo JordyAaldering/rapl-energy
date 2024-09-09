@@ -14,5 +14,8 @@ install: release
 	cp $(RELEASE)/librapl_energy.so $(LOCAL)/lib/
 
 uninstall:
-	rm $(LOCAL)/include/rapl_energy.h
-	rm $(LOCAL)/lib/librapl_energy.so
+	$(RM) $(LOCAL)/include/rapl_energy.h
+	$(RM) $(LOCAL)/lib/librapl_energy.so
+
+clean:
+	cargo clean
