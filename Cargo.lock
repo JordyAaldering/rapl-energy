@@ -367,11 +367,12 @@ dependencies = [
 
 [[package]]
 name = "rapl-energy"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "cbindgen",
  "indexmap 2.2.6",
  "nvml-wrapper",
+ "once_cell",
  "ureq",
 ]
 
