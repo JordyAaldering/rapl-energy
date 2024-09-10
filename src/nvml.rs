@@ -52,15 +52,23 @@ impl<'a> NvmlDevice<'a> {
     }
 
     fn elapsed(&self) -> f64 {
-        let prev_energy = self.energy;
-        let next_energy = self.device.total_energy_consumption().unwrap();
-        (next_energy - prev_energy) as f64 / 1000.0
+        let prev = self.energy;
+        let next = self.next();
+        diff(prev, next)
     }
 
     fn elapsed_mut(&mut self) -> f64 {
-        let prev_energy = self.energy;
-        let next_energy = self.device.total_energy_consumption().unwrap();
-        self.energy = next_energy;
-        (next_energy - prev_energy) as f64 / 1000.0
+        let prev = self.energy;
+        let next = self.next();
+        self.energy = next;
+        diff(prev, next)
     }
+
+    fn next(&self) -> u64 {
+        self.device.total_energy_consumption().unwrap()
+    }
+}
+
+fn diff(prev: u64, next: u64) -> f64 {
+    (next - prev) as f64 / 1000.0
 }

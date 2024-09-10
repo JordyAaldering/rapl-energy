@@ -34,22 +34,22 @@ impl Hwmon {
 
 impl Energy for Hwmon {
     fn elapsed(&self) -> IndexMap<String, f64> {
-        let energy_prev = &self.energy;
-        let energy_next = hwmon_energy(&self.device);
-        energy_next.into_iter().map(|(key, next)| {
+        let prev = &self.energy;
+        let next = hwmon_energy(&self.device);
+        next.into_iter().map(|(key, next)| {
             let name = self.name.clone();
-            let energy = next - energy_prev[&key];
+            let energy = next - prev[&key];
             (name, energy as f64)
         }).collect()
     }
 
     fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
-        let mut energy_prev = hwmon_energy(&self.device);
-        swap(&mut self.energy, &mut energy_prev);
+        let mut prev = hwmon_energy(&self.device);
+        swap(&mut self.energy, &mut prev);
 
         self.energy.iter().map(|(&key, &next)| {
             let name = self.name.clone();
-            let energy = next - energy_prev[&key];
+            let energy = next - prev[&key];
             (name, energy as f64)
         }).collect()
     }
