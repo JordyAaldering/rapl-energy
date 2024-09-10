@@ -125,7 +125,7 @@ fn read_package(package_id: u8) -> Option<u64> {
 }
 
 fn read_subzone(package_id: u8, subzone_id: u8) -> Option<u64> {
-    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/name", package_id, package_id, subzone_id))
+    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/energy_uj", package_id, package_id, subzone_id))
 }
 
 fn package_name(package_id: u8) -> String {
@@ -152,5 +152,6 @@ fn read(path: &String) -> Option<u64> {
     let mut file = OpenOptions::new().read(true).open(path).ok()?;
     let mut buf = String::new();
     file.read_to_string(&mut buf).ok()?;
-    buf.trim().parse::<u64>().ok()
+    let energy_uj = buf.trim().parse::<u64>().unwrap();
+    Some(energy_uj)
 }
