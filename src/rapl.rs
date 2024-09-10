@@ -1,5 +1,4 @@
-use std::fs::{self, OpenOptions};
-use std::io::Read;
+use std::fs;
 use std::iter::once;
 
 use indexmap::IndexMap;
