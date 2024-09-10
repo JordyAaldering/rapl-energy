@@ -1,18 +1,16 @@
 mod libc;
 
-pub mod msr;
-pub mod rapl;
-#[cfg(feature = "nvml")]
-pub mod nvml;
-#[cfg(feature = "http")]
-pub mod http;
+mod msr;
+mod rapl;
+#[cfg(feature = "http")] mod http;
+#[cfg(feature = "hwmon")] mod hwmon;
+#[cfg(feature = "nvml")] mod nvml;
 
 pub use msr::Msr;
 pub use rapl::Rapl;
-#[cfg(feature = "nvml")]
-pub use nvml::Nvml;
-#[cfg(feature = "http")]
-pub use http::Http;
+#[cfg(feature = "http")] pub use http::Http;
+#[cfg(feature = "hwmon")] pub use hwmon::Hwmon;
+#[cfg(feature = "nvml")] pub use nvml::Nvml;
 
 use indexmap::IndexMap;
 
