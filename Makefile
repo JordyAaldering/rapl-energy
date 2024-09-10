@@ -1,4 +1,3 @@
-RELEASE=target/release
 LOCAL=$(HOME)/.local
 
 all: debug
@@ -10,8 +9,8 @@ release:
 	cargo build --release
 
 install: release
-	cp $(RELEASE)/rapl_energy.h $(LOCAL)/include/
-	cp $(RELEASE)/librapl_energy.so $(LOCAL)/lib/
+	cp target/release/rapl_energy.h $(LOCAL)/include/
+	cp target/release/librapl_energy.so $(LOCAL)/lib/
 
 uninstall:
 	$(RM) $(LOCAL)/include/rapl_energy.h

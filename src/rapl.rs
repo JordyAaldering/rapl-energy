@@ -60,8 +60,8 @@ impl Package {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = read_package(self.package_id).unwrap();
-        let package_energy_uj = rapl_diff(self.package_energy_uj, package_energy_next, self.max_energy_range_uj);
-        res.insert(format!("intel-rapl:{}", self.package_id), package_energy_uj as f64);
+        let package_energy = rapl_diff(self.package_energy_uj, package_energy_next, self.max_energy_range_uj);
+        res.insert(format!("intel-rapl:{}", self.package_id), package_energy);
 
         let subzone_energy_uj = self.subzones.iter().map(Subzone::elapsed);
         res.extend(subzone_energy_uj);
@@ -72,10 +72,10 @@ impl Package {
     fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
         let package_uj_prev = self.package_energy_uj;
         self.package_energy_uj = read_package(self.package_id).unwrap();
-        let package_uj = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
+        let package_energy = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
 
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
-        res.insert(format!("intel-rapl:{}", self.package_id), package_uj as f64);
+        res.insert(format!("intel-rapl:{}", self.package_id), package_energy);
         let subzone_energy_uj = self.subzones.iter_mut().map(Subzone::elapsed_mut);
         res.extend(subzone_energy_uj);
 
@@ -94,7 +94,7 @@ impl Subzone {
         let energy_next = read_subzone(self.package_id, self.subzone_id).unwrap();
         let energy = rapl_diff(self.energy_uj, energy_next, self.max_energy_range_uj);
 
-        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy as f64)
+        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy)
     }
 
     fn elapsed_mut(&mut self) -> (String, f64) {
@@ -102,17 +102,18 @@ impl Subzone {
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
         let energy = rapl_diff(energy_prev, self.energy_uj, self.max_energy_range_uj);
 
-        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy as f64)
+        (format!("intel-rapl:{}:{}", self.package_id, self.subzone_id), energy)
     }
 }
 
-fn rapl_diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> u64 {
-    if next_uj >= prev_uj {
+fn rapl_diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f64 {
+    let energy_uj = if next_uj >= prev_uj {
         next_uj - prev_uj
     } else {
         // The accumulator overflowed
         next_uj + (max_energy_range_uj - prev_uj)
-    }
+    };
+    energy_uj as f64 / 1000_000.0
 }
 
 fn read_package(package_id: u8) -> Option<u64> {
