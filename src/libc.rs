@@ -1,4 +1,4 @@
-use std::{ffi::{c_char, CString}, ptr};
+use std::{ffi, ptr};
 
 use crate::*;
 
@@ -6,7 +6,7 @@ type RaplEnergy = Option<*mut dyn Energy>;
 
 #[repr(C)]
 struct RaplElapsed {
-    keys: *const *const c_char,
+    keys: *const *mut ffi::c_char,
     energy: *const f64,
     len: usize,
 }
@@ -23,20 +23,41 @@ impl RaplElapsed {
     fn from(map: IndexMap<String, f64>) -> Self {
         let len = map.len();
 
-        let (keys, values): (Vec<String>, Vec<f64>) = map.into_iter().unzip();
+        let (keys, mut values): (Vec<String>, Vec<f64>) = map.into_iter().unzip();
+        values.shrink_to_fit();
 
-        let cstr_vec: Vec<CString> = keys.into_iter().map(|s| CString::new(s.as_str()).unwrap()).collect();
-        let cptr_vec: Vec<*const c_char> = cstr_vec.iter().map(|s| s.as_ptr()).collect();
+        let mut cchar_vec: Vec<*mut ffi::c_char> = keys
+            .into_iter()
+            .map(|s| ffi::CString::new(s).unwrap().into_raw())
+            .collect();
+        cchar_vec.shrink_to_fit();
 
         let res = RaplElapsed {
-            keys: cptr_vec.as_ptr(),
+            keys: cchar_vec.as_ptr(),
             energy: values.as_ptr(),
             len,
         };
 
-        std::mem::forget(cptr_vec);
+        std::mem::forget(cchar_vec);
         std::mem::forget(values);
         res
+    }
+
+    fn keys(&self) -> Vec<*mut ffi::c_char> {
+        unsafe { Vec::from_raw_parts(self.keys as *mut *mut ffi::c_char, self.len, self.len) }
+    }
+
+    fn energy(&self) -> Vec<f64> {
+        unsafe { Vec::from_raw_parts(self.energy as *mut f64, self.len, self.len) }
+    }
+
+    fn free(&self) {
+        for key in self.keys() {
+            let cstr = unsafe { ffi::CString::from_raw(key) };
+            drop(cstr);
+        }
+
+        drop(self.energy());
     }
 }
 
@@ -63,18 +84,15 @@ extern "C" fn rapl_elapsed(energy: &mut RaplEnergy) -> *mut RaplElapsed {
 
 #[no_mangle]
 extern "C" fn elapsed_free(elapsed: &mut RaplElapsed) {
-    let energy = unsafe { std::ptr::read(elapsed) };
-    let keys: Vec<*mut c_char> = unsafe { Vec::from_raw_parts(energy.keys as *mut *mut c_char, energy.len, energy.len) };
-    let vals: Vec<f64> = unsafe { Vec::from_raw_parts(energy.energy as *mut f64, energy.len, energy.len) };
-    drop(keys);
-    drop(vals);
-    drop(energy);
+    let elapsed = unsafe { Box::from_raw(elapsed) };
+    elapsed.free();
+    drop(elapsed);
 }
 
 #[no_mangle]
 extern "C" fn rapl_free(energy: &mut RaplEnergy) {
-    let energy = unsafe { std::ptr::read(energy) };
-    if let Some(energy) = energy {
+    let energy = unsafe { Box::from_raw(energy) };
+    if let Some(energy) = *energy {
         let energy = unsafe { Box::from_raw(energy) };
         drop(energy);
     }
