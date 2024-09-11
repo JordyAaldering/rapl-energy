@@ -1,33 +1,17 @@
 use crate::*;
 
-//type EnergyC = Option<Box<*mut dyn Energy>>;
 type EnergyC = Option<*mut dyn Energy>;
 
 #[no_mangle]
-pub extern "C" fn start_msr() -> *mut EnergyC {
-    let msr = Msr::now()
-        .map(Box::into_raw)
-        ;//.map(Box::new);
-    Box::into_raw(Box::new(msr))
-}
-
-#[no_mangle]
 pub extern "C" fn start_rapl() -> *mut EnergyC {
-    let rapl = Rapl::now()
-        .map(Box::into_raw)
-        ;//.map(Box::new);
+    let rapl = Rapl::now().map(Box::into_raw);
     Box::into_raw(Box::new(rapl))
 }
 
-#[cfg(feature = "http")]
 #[no_mangle]
-pub extern "C" fn start_ina() -> *mut EnergyC {
-    let path = std::env::var("ENERGY_STATS").unwrap();
-    let header = "X-Electricity-Consumed-Total".to_string();
-    let ina = Http::now(path, header)
-        .map(Box::into_raw)
-        ;//.map(Box::new);
-    Box::into_raw(Box::new(ina))
+pub extern "C" fn start_msr() -> *mut EnergyC {
+    let msr = Msr::now().map(Box::into_raw);
+    Box::into_raw(Box::new(msr))
 }
 
 #[no_mangle]
@@ -59,10 +43,7 @@ pub extern "C" fn print_energy(energy: &mut EnergyC) {
         let elapsed = energy.elapsed();
         std::mem::forget(energy);
 
-        println!("{}", elapsed.values()
-            .map(f64::to_string)
-            .collect::<Vec<String>>()
-            .join(", "));
+        println!("{:?}", elapsed);
     }
 }
 

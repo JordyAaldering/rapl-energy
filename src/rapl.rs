@@ -5,24 +5,49 @@ use indexmap::IndexMap;
 
 use crate::Energy;
 
+struct Accumulator<T> where T: Copy + Default + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::cmp::PartialOrd {
+    value: T,
+    max: T,
+}
+
+impl<T> Accumulator<T> where T: Copy + Default + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::cmp::PartialOrd {
+    pub fn new(value: T, max: T) -> Accumulator<T> {
+        debug_assert!(value < max);
+        Accumulator { value, max }
+    }
+
+    pub fn diff(&self, next: T) -> T {
+        if next >= self.value {
+            next - self.value
+        } else {
+            // The accumulator overflowed
+            next + (self.max - self.value)
+        }
+    }
+
+    pub fn update(&mut self, next: T) -> T {
+        let diff = self.diff(next);
+        self.value = next;
+        diff
+    }
+}
+
 pub struct Rapl {
     packages: Vec<Package>,
 }
 
 struct Package {
-    package_id: u8,
     name: String,
-    max: u64,
-    energy: u64,
+    package_id: u8,
+    energy: Accumulator<u64>,
     subzones: Vec<Subzone>,
 }
 
 struct Subzone {
+    name: String,
     package_id: u8,
     subzone_id: u8,
-    name: String,
-    max: u64,
-    energy: u64,
+    energy: Accumulator<u64>,
 }
 
 impl Rapl {
@@ -53,28 +78,24 @@ impl Package {
     fn now(package_id: u8) -> Option<Self> {
         let energy = read_package(package_id)?;
         let max = read_package_range(package_id);
+        let energy = Accumulator::new(energy, max);
         let name = package_name(package_id);
         let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
-        Some(Package { name, package_id, max, energy, subzones })
+        Some(Package { name, package_id, energy, subzones })
     }
 
     fn elapsed(&self) -> IndexMap<String, f64> {
-        let prev = self.energy;
         let next = self.next();
-        let energy = diff(prev, next, self.max);
-
-        once((self.name.clone(), energy))
+        let diff = self.energy.diff(next);
+        once((self.name.clone(), to_joules(diff)))
             .chain(self.subzones.iter().map(Subzone::elapsed))
             .collect()
     }
 
     fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
-        let prev = self.energy;
         let next = self.next();
-        let energy = diff(prev, next, self.max);
-        self.energy = next;
-
-        once((self.name.clone(), energy))
+        let diff = self.energy.update(next);
+        once((self.name.clone(), to_joules(diff)))
             .chain(self.subzones.iter_mut().map(Subzone::elapsed_mut))
             .collect()
     }
@@ -88,25 +109,21 @@ impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
         let energy = read_subzone(package_id, subzone_id)?;
         let max = read_subzone_range(package_id, subzone_id);
+        let energy = Accumulator::new(energy, max);
         let name = subzone_name(package_id, subzone_id);
-        Some(Subzone { name, package_id, subzone_id, max, energy })
+        Some(Subzone { name, package_id, subzone_id, energy })
     }
 
     fn elapsed(&self) -> (String, f64) {
-        let prev = self.energy;
         let next = self.next();
-
-        let energy = diff(prev, next, self.max);
-        (self.name.clone(), energy)
+        let diff = self.energy.diff(next);
+        (self.name.clone(), to_joules(diff))
     }
 
     fn elapsed_mut(&mut self) -> (String, f64) {
-        let prev = self.energy;
         let next = self.next();
-        self.energy = next;
-
-        let energy = diff(prev, next, self.max);
-        (self.name.clone(), energy)
+        let diff = self.energy.update(next);
+        (self.name.clone(), to_joules(diff))
     }
 
     fn next(&self) -> u64 {
@@ -114,14 +131,8 @@ impl Subzone {
     }
 }
 
-fn diff(prev: u64, next: u64, max: u64) -> f64 {
-    let energy_uj = if next >= prev {
-        next - prev
-    } else {
-        // The accumulator overflowed
-        next + (max - prev)
-    };
-    energy_uj as f64 / 1000_000.0
+fn to_joules(micro_joules: u64) -> f64 {
+    micro_joules as f64 / 1000_000.0
 }
 
 fn read_package(package_id: u8) -> Option<u64> {
