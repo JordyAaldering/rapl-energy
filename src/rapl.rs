@@ -1,53 +1,29 @@
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Read;
 use std::iter::once;
 
 use indexmap::IndexMap;
 
 use crate::Energy;
 
-struct Accumulator<T> where T: Copy + Default + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::cmp::PartialOrd {
-    value: T,
-    max: T,
-}
-
-impl<T> Accumulator<T> where T: Copy + Default + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::cmp::PartialOrd {
-    pub fn new(value: T, max: T) -> Accumulator<T> {
-        debug_assert!(value < max);
-        Accumulator { value, max }
-    }
-
-    pub fn diff(&self, next: T) -> T {
-        if next >= self.value {
-            next - self.value
-        } else {
-            // The accumulator overflowed
-            next + (self.max - self.value)
-        }
-    }
-
-    pub fn update(&mut self, next: T) -> T {
-        let diff = self.diff(next);
-        self.value = next;
-        diff
-    }
-}
-
 pub struct Rapl {
     packages: Vec<Package>,
 }
 
 struct Package {
-    name: String,
     package_id: u8,
-    energy: Accumulator<u64>,
+    name: String,
+    max_energy_range_uj: u64,
+    package_energy_uj: u64,
     subzones: Vec<Subzone>,
 }
 
 struct Subzone {
-    name: String,
     package_id: u8,
     subzone_id: u8,
-    energy: Accumulator<u64>,
+    name: String,
+    max_energy_range_uj: u64,
+    energy_uj: u64,
 }
 
 impl Rapl {
@@ -76,63 +52,72 @@ impl Energy for Rapl {
 
 impl Package {
     fn now(package_id: u8) -> Option<Self> {
-        let energy = read_package(package_id)?;
-        let max = read_package_range(package_id);
-        let energy = Accumulator::new(energy, max);
+        let package_energy_uj = read_package(package_id)?;
+        let max_energy_range_uj = read_package_range(package_id);
         let name = package_name(package_id);
         let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
-        Some(Package { name, package_id, energy, subzones })
+        Some(Package { name, package_id, max_energy_range_uj, package_energy_uj, subzones })
     }
 
     fn elapsed(&self) -> IndexMap<String, f64> {
-        let next = self.next();
-        let diff = self.energy.diff(next);
-        once((self.name.clone(), to_joules(diff)))
-            .chain(self.subzones.iter().map(Subzone::elapsed))
-            .collect()
+        let mut res = IndexMap::with_capacity(1 + self.subzones.len());
+
+        let package_energy_next = read_package(self.package_id).unwrap();
+        let package_energy = rapl_diff(self.package_energy_uj, package_energy_next, self.max_energy_range_uj);
+        res.insert(self.name.clone(), package_energy);
+
+        let subzone_energy_uj = self.subzones.iter().map(Subzone::elapsed);
+        res.extend(subzone_energy_uj);
+
+        res
     }
 
     fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
-        let next = self.next();
-        let diff = self.energy.update(next);
-        once((self.name.clone(), to_joules(diff)))
-            .chain(self.subzones.iter_mut().map(Subzone::elapsed_mut))
-            .collect()
-    }
+        let package_uj_prev = self.package_energy_uj;
+        self.package_energy_uj = read_package(self.package_id).unwrap();
+        let package_energy = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
 
-    fn next(&self) -> u64 {
-        read_package(self.package_id).unwrap()
+        let mut res = IndexMap::with_capacity(1 + self.subzones.len());
+        res.insert(self.name.clone(), package_energy);
+        let subzone_energy_uj = self.subzones.iter_mut().map(Subzone::elapsed_mut);
+        res.extend(subzone_energy_uj);
+
+        res
     }
 }
 
 impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
-        let energy = read_subzone(package_id, subzone_id)?;
-        let max = read_subzone_range(package_id, subzone_id);
-        let energy = Accumulator::new(energy, max);
+        let energy_uj = read_subzone(package_id, subzone_id)?;
+        let max_energy_range_uj = read_subzone_range(package_id, subzone_id);
         let name = subzone_name(package_id, subzone_id);
-        Some(Subzone { name, package_id, subzone_id, energy })
+        Some(Subzone { name, package_id, subzone_id, max_energy_range_uj, energy_uj })
     }
 
     fn elapsed(&self) -> (String, f64) {
-        let next = self.next();
-        let diff = self.energy.diff(next);
-        (self.name.clone(), to_joules(diff))
+        let energy_next = read_subzone(self.package_id, self.subzone_id).unwrap();
+        let energy = rapl_diff(self.energy_uj, energy_next, self.max_energy_range_uj);
+
+        (self.name.clone(), energy)
     }
 
     fn elapsed_mut(&mut self) -> (String, f64) {
-        let next = self.next();
-        let diff = self.energy.update(next);
-        (self.name.clone(), to_joules(diff))
-    }
+        let energy_prev = self.energy_uj;
+        self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
+        let energy = rapl_diff(energy_prev, self.energy_uj, self.max_energy_range_uj);
 
-    fn next(&self) -> u64 {
-        read_subzone(self.package_id, self.subzone_id).unwrap()
+        (self.name.clone(), energy)
     }
 }
 
-fn to_joules(micro_joules: u64) -> f64 {
-    micro_joules as f64 / 1000_000.0
+fn rapl_diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f64 {
+    let energy_uj = if next_uj >= prev_uj {
+        next_uj - prev_uj
+    } else {
+        // The accumulator overflowed
+        next_uj + (max_energy_range_uj - prev_uj)
+    };
+    energy_uj as f64 / 1000_000.0
 }
 
 fn read_package(package_id: u8) -> Option<u64> {
@@ -140,19 +125,23 @@ fn read_package(package_id: u8) -> Option<u64> {
 }
 
 fn read_subzone(package_id: u8, subzone_id: u8) -> Option<u64> {
-    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/energy_uj", package_id, package_id, subzone_id))
+    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/name", package_id, package_id, subzone_id))
 }
 
 fn package_name(package_id: u8) -> String {
     let path = format!("/sys/class/powercap/intel-rapl:{}/name", package_id);
-    fs::read_to_string(path).unwrap().trim().to_string()
+    let default = format!("intel-rapl:{}", package_id);
+    fs::read_to_string(path).map_or(default, |s| s.trim().to_string())
 }
 
 fn subzone_name(package_id: u8, subzone_id: u8) -> String {
     let package_name = package_name(package_id);
     let path = format!("/sys/class/powercap/intel-rapl:{}:{}/name", package_id, subzone_id);
-    let subzone_name = fs::read_to_string(path).unwrap().trim().to_string();
-    format!("{}-{}", package_name, subzone_name)
+    if let Ok(s) = fs::read_to_string(path) {
+        format!("{}-{}", package_name, s.trim())
+    } else {
+        format!("{}:{}", package_name, subzone_id)
+    }
 }
 
 fn read_package_range(package_id: u8) -> u64 {
@@ -164,7 +153,8 @@ fn read_subzone_range(package_id: u8, subzone_id: u8) -> u64 {
 }
 
 fn read(path: &String) -> Option<u64> {
-    let str = fs::read_to_string(path).ok()?;
-    let energy = str.trim().parse::<u64>().unwrap();
-    Some(energy)
+    let mut file = OpenOptions::new().read(true).open(path).ok()?;
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).ok()?;
+    buf.trim().parse::<u64>().ok()
 }
