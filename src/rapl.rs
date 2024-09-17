@@ -125,7 +125,7 @@ fn read_package(package_id: u8) -> Option<u64> {
 }
 
 fn read_subzone(package_id: u8, subzone_id: u8) -> Option<u64> {
-    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/name", package_id, package_id, subzone_id))
+    read(&format!("/sys/class/powercap/intel-rapl:{}/intel-rapl:{}:{}/energy_uj", package_id, package_id, subzone_id))
 }
 
 fn package_name(package_id: u8) -> String {

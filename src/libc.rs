@@ -76,6 +76,8 @@ extern "C" fn rapl_elapsed(energy: &mut RaplEnergy) -> *mut RaplElapsed {
         let elapsed = energy.elapsed();
         std::mem::forget(energy);
 
+        println!("---- {:?}", elapsed);
+
         Box::into_raw(Box::new(RaplElapsed::from(elapsed)))
     } else {
         Box::into_raw(Box::new(RaplElapsed::default()))
