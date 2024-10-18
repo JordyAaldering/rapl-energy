@@ -35,14 +35,14 @@ impl Rapl {
 }
 
 impl Energy for Rapl {
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         self.packages
             .iter()
             .flat_map(Package::elapsed)
             .collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         self.packages
             .iter_mut()
             .flat_map(Package::elapsed_mut)
@@ -59,7 +59,7 @@ impl Package {
         Some(Package { name, package_id, max_energy_range_uj, package_energy_uj, subzones })
     }
 
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = read_package(self.package_id).unwrap();
@@ -72,7 +72,7 @@ impl Package {
         res
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         let package_uj_prev = self.package_energy_uj;
         self.package_energy_uj = read_package(self.package_id).unwrap();
         let package_energy = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
@@ -94,14 +94,14 @@ impl Subzone {
         Some(Subzone { name, package_id, subzone_id, max_energy_range_uj, energy_uj })
     }
 
-    fn elapsed(&self) -> (String, f64) {
+    fn elapsed(&self) -> (String, f32) {
         let energy_next = read_subzone(self.package_id, self.subzone_id).unwrap();
         let energy = rapl_diff(self.energy_uj, energy_next, self.max_energy_range_uj);
 
         (self.name.clone(), energy)
     }
 
-    fn elapsed_mut(&mut self) -> (String, f64) {
+    fn elapsed_mut(&mut self) -> (String, f32) {
         let energy_prev = self.energy_uj;
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
         let energy = rapl_diff(energy_prev, self.energy_uj, self.max_energy_range_uj);
@@ -110,14 +110,14 @@ impl Subzone {
     }
 }
 
-fn rapl_diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f64 {
+fn rapl_diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f32 {
     let energy_uj = if next_uj >= prev_uj {
         next_uj - prev_uj
     } else {
         // The accumulator overflowed
         next_uj + (max_energy_range_uj - prev_uj)
     };
-    energy_uj as f64 / 1000_000.0
+    energy_uj as f32 / 1000_000.0
 }
 
 fn read_package(package_id: u8) -> Option<u64> {
@@ -156,5 +156,5 @@ fn read(path: &String) -> Option<u64> {
     let mut file = OpenOptions::new().read(true).open(path).ok()?;
     let mut buf = String::new();
     file.read_to_string(&mut buf).ok()?;
-    buf.trim().parse::<u64>().ok()
+    Some(buf.trim().parse::<u64>().unwrap())
 }

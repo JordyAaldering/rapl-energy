@@ -6,7 +6,7 @@ pub struct Http {
     path: String,
     header: String,
     agent: ureq::Agent,
-    energy: f64,
+    energy: f32,
 }
 
 impl Http {
@@ -23,13 +23,13 @@ impl Http {
         Some(Box::new(Http { path, header, agent, energy }))
     }
 
-    fn next(&self) -> f64 {
+    fn next(&self) -> f32 {
         read(&self.agent, &self.path, &self.header).unwrap()
     }
 }
 
 impl Energy for Http {
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         let prev = self.energy;
         let next = self.next();
 
@@ -38,7 +38,7 @@ impl Energy for Http {
         }
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         let prev = self.energy;
         let next = self.next();
         self.energy = next;
@@ -49,9 +49,9 @@ impl Energy for Http {
     }
 }
 
-fn read(agent: &ureq::Agent, path: &str, header: &str) -> Option<f64> {
+fn read(agent: &ureq::Agent, path: &str, header: &str) -> Option<f32> {
     let resp = agent.get(path).call().ok()?;
     let str = resp.header(header)?;
-    let energy = str.trim().parse::<f64>().unwrap();
+    let energy = str.trim().parse::<f32>().unwrap();
     Some(energy)
 }

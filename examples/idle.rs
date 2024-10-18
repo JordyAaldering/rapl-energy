@@ -12,7 +12,7 @@ fn main() {
 
     let seconds: usize = args[1].parse().unwrap();
     let precision: usize = args[2].parse().unwrap();
-    let sleep = Duration::from_secs_f64(1.0 / precision as f64);
+    let sleep = Duration::from_secs_f32(1.0 / precision as f32);
     let len = seconds * precision;
 
     let mut energy = Vec::with_capacity(len);
@@ -20,10 +20,10 @@ fn main() {
 
     for _ in 0..len {
         thread::sleep(sleep);
-        let e = rapl.elapsed_mut()[0] * precision as f64;
+        let e = rapl.elapsed_mut()[0] * precision as f32;
         energy.push(e);
     }
 
     println!("{:?}", energy);
-    println!("{}W", energy.into_iter().sum::<f64>() / len as f64)
+    println!("{}W", energy.into_iter().sum::<f32>() / len as f32)
 }

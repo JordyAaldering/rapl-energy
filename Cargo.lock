@@ -382,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "rapl-energy"
-version = "0.1.13"
+version = "0.1.14"
 dependencies = [
  "cbindgen",
  "indexmap 2.5.0",

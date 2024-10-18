@@ -15,7 +15,7 @@ pub use rapl::Rapl;
 use indexmap::IndexMap;
 
 pub trait Energy {
-    fn elapsed(&self) -> IndexMap<String, f64>;
+    fn elapsed(&self) -> IndexMap<String, f32>;
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64>;
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32>;
 }

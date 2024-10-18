@@ -29,9 +29,9 @@ enum Offset {
 
 #[allow(unused)]
 struct Unit {
-    time: f64,
-    energy: f64,
-    power: f64,
+    time: f32,
+    energy: f32,
+    power: f32,
 }
 
 #[repr(u64)]
@@ -50,11 +50,11 @@ impl Msr {
 }
 
 impl Energy for Msr {
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         self.cores
             .iter_mut()
             .flat_map(Core::elapsed_mut)
@@ -75,7 +75,7 @@ impl Core {
         })
     }
 
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         let mut file = self.handle.lock().unwrap();
         let package = read(&mut file, Offset::PackageEnergy);
         let core = read(&mut file, Offset::CoreEnergy);
@@ -86,7 +86,7 @@ impl Core {
         }
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         let package_prev = self.package_unit;
         let core_prev = self.core_unit;
 
@@ -111,16 +111,16 @@ impl Unit {
         }
     }
 
-    pub fn joules(&self, unit: u64) -> f64 {
-        unit as f64 * self.energy
+    pub fn joules(&self, unit: u64) -> f32 {
+        unit as f32 * self.energy
     }
 }
 
 impl Mask {
-    pub fn mask(self, units: u64) -> f64 {
+    pub fn mask(self, units: u64) -> f32 {
         let mask = self as u64;
         let unit = (units & mask) >> mask.trailing_zeros();
-        0.5f64.powi(unit as i32)
+        0.5f32.powi(unit as i32)
     }
 }
 

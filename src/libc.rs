@@ -7,7 +7,7 @@ type RaplEnergy = Option<*mut dyn Energy>;
 #[repr(C)]
 struct RaplElapsed {
     keys: *const *mut ffi::c_char,
-    energy: *const f64,
+    energy: *const f32,
     len: usize,
 }
 
@@ -20,10 +20,10 @@ impl RaplElapsed {
         }
     }
 
-    fn from(map: IndexMap<String, f64>) -> Self {
+    fn from(map: IndexMap<String, f32>) -> Self {
         let len = map.len();
 
-        let (keys, mut values): (Vec<String>, Vec<f64>) = map.into_iter().unzip();
+        let (keys, mut values): (Vec<String>, Vec<f32>) = map.into_iter().unzip();
         values.shrink_to_fit();
 
         let mut cchar_vec: Vec<*mut ffi::c_char> = keys
@@ -47,8 +47,8 @@ impl RaplElapsed {
         unsafe { Vec::from_raw_parts(self.keys as *mut *mut ffi::c_char, self.len, self.len) }
     }
 
-    fn energy(&self) -> Vec<f64> {
-        unsafe { Vec::from_raw_parts(self.energy as *mut f64, self.len, self.len) }
+    fn energy(&self) -> Vec<f32> {
+        unsafe { Vec::from_raw_parts(self.energy as *mut f32, self.len, self.len) }
     }
 
     fn free(&self) {

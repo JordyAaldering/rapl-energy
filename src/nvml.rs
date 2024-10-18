@@ -25,7 +25,7 @@ impl<'a> Nvml<'a> {
 }
 
 impl<'a> Energy for Nvml<'a> {
-    fn elapsed(&self) -> IndexMap<String, f64> {
+    fn elapsed(&self) -> IndexMap<String, f32> {
         self.devices.iter().map(|device| {
             let name = device.name.clone();
             let energy = device.elapsed();
@@ -33,7 +33,7 @@ impl<'a> Energy for Nvml<'a> {
         }).collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f64> {
+    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
         self.devices.iter_mut().map(|device| {
             let name = device.name.clone();
             let energy = device.elapsed_mut();
@@ -51,13 +51,13 @@ impl<'a> NvmlDevice<'a> {
         Some(NvmlDevice { device, name, energy })
     }
 
-    fn elapsed(&self) -> f64 {
+    fn elapsed(&self) -> f32 {
         let prev = self.energy;
         let next = self.next();
         diff(prev, next)
     }
 
-    fn elapsed_mut(&mut self) -> f64 {
+    fn elapsed_mut(&mut self) -> f32 {
         let prev = self.energy;
         let next = self.next();
         self.energy = next;
@@ -69,6 +69,6 @@ impl<'a> NvmlDevice<'a> {
     }
 }
 
-fn diff(prev: u64, next: u64) -> f64 {
-    (next - prev) as f64 / 1000.0
+fn diff(prev: u64, next: u64) -> f32 {
+    (next - prev) as f32 / 1000.0
 }
