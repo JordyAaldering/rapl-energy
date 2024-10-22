@@ -1,4 +1,3 @@
-use std::iter::once;
 use std::str::FromStr;
 
 use indexmap::IndexMap;
@@ -27,8 +26,7 @@ struct Subzone {
 
 impl Rapl {
     pub fn now() -> Option<Box<dyn Energy>> {
-        let package0 = once(Package::now(0)?);
-        let packages = package0.chain((1..u8::MAX).map_while(Package::now)).collect();
+        let packages = crate::chain(Package::now)?;
         Some(Box::new(Self { packages }))
     }
 }
@@ -46,7 +44,6 @@ impl Energy for Rapl {
 impl Package {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/sys/class/powercap/intel-rapl:{}", package_id);
-
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
         let name = require(&path, "name");
@@ -54,6 +51,7 @@ impl Package {
 
         let package_energy_uj = handle.read();
         let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
+
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones })
     }
 
@@ -80,7 +78,6 @@ impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
         let package_path = format!("/sys/class/powercap/intel-rapl:{}", package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
-
         let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path)).ok()?;
 
         let package_name: String = require(&package_path, "name");

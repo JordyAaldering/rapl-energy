@@ -1,5 +1,3 @@
-use std::iter::once;
-
 use indexmap::{indexmap, IndexMap};
 
 use crate::file_handle::FileHandle;
@@ -10,10 +8,10 @@ pub struct Msr {
 }
 
 struct Core {
-    package_id: u8,
     handle: FileHandle,
-    package_unit: u64,
-    core_unit: u64,
+    package_id: u8,
+    package: u64,
+    core: u64,
     unit: Unit,
 }
 
@@ -24,10 +22,23 @@ enum Offset {
     PackageEnergy = 0xC001029B,
 }
 
+#[allow(unused)]
+struct Unit {
+    time: f32,
+    energy: f32,
+    power: f32,
+}
+
+#[repr(u64)]
+enum Mask {
+    TimeUnit   = 0b11110000000000000000,
+    EnergyUnit = 0b00000001111100000000,
+    PowerUnit  = 0b00000000000000001111,
+}
+
 impl Msr {
     pub fn now() -> Option<Box<dyn Energy>> {
-        let core0 = once(Core::now(0)?);
-        let cores = core0.chain((1..u8::MAX).map_while(Core::now)).collect();
+        let cores = crate::chain(Core::now)?;
         Some(Box::new(Msr { cores }))
     }
 }
@@ -48,33 +59,32 @@ impl Core {
         let handle = FileHandle::new(&path).ok()?;
         Some(Core {
             package_id,
+            package: Offset::PackageEnergy.read(&handle),
+            core: Offset::CoreEnergy.read(&handle),
             unit: Unit::new(&handle),
-            package_unit: handle.from_le_bytes(Offset::PackageEnergy as u64),
-            core_unit: handle.from_le_bytes(Offset::CoreEnergy as u64),
             handle,
         })
     }
 
     fn elapsed(&self) -> IndexMap<String, f32> {
-        let package = self.handle.from_le_bytes(Offset::PackageEnergy as u64);
-        let core = self.handle.from_le_bytes(Offset::CoreEnergy as u64);
+        let package = Offset::PackageEnergy.read(&self.handle);
+        let core = Offset::CoreEnergy.read(&self.handle);
         indexmap!{
-            format!("cpu{}:package", self.package_id) => self.unit.joules(package - self.package_unit),
-            format!("cpu{}:core", self.package_id) => self.unit.joules(core - self.core_unit),
+            format!("msr-{}-package", self.package_id) => self.unit.joules(package - self.package),
+            format!("msr-{}-core", self.package_id) => self.unit.joules(core - self.core),
         }
     }
 
     fn reset(&mut self) {
-        self.package_unit = self.handle.from_le_bytes(Offset::PackageEnergy as u64);
-        self.core_unit = self.handle.from_le_bytes(Offset::CoreEnergy as u64);
+        self.package = Offset::PackageEnergy.read(&self.handle);
+        self.core = Offset::CoreEnergy.read(&self.handle);
     }
 }
 
-#[allow(unused)]
-struct Unit {
-    time: f32,
-    energy: f32,
-    power: f32,
+impl Offset {
+    pub fn read(self, handle: &FileHandle) -> u64 {
+        handle.from_le_bytes(self as u64)
+    }
 }
 
 impl Unit {
@@ -90,13 +100,6 @@ impl Unit {
     pub fn joules(&self, unit: u64) -> f32 {
         unit as f32 * self.energy
     }
-}
-
-#[repr(u64)]
-enum Mask {
-    TimeUnit   = 0b11110000000000000000,
-    EnergyUnit = 0b00000001111100000000,
-    PowerUnit  = 0b00000000000000001111,
 }
 
 impl Mask {
