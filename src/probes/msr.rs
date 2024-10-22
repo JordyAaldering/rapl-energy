@@ -1,11 +1,8 @@
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Seek, SeekFrom};
 use std::iter::once;
-use std::mem;
-use std::sync::Mutex;
 
 use indexmap::{indexmap, IndexMap};
 
+use crate::file_handle::FileHandle;
 use crate::Energy;
 
 pub struct Msr {
@@ -14,7 +11,7 @@ pub struct Msr {
 
 struct Core {
     package_id: u8,
-    handle: Mutex<File>,
+    handle: FileHandle,
     package_unit: u64,
     core_unit: u64,
     unit: Unit,
@@ -48,21 +45,19 @@ impl Energy for Msr {
 impl Core {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
-        let mut file = OpenOptions::new().read(true).open(&path).ok()?;
+        let handle = FileHandle::new(&path).ok()?;
         Some(Core {
             package_id,
-            unit: Unit::new(&mut file),
-            package_unit: read(&mut file, Offset::PackageEnergy),
-            core_unit: read(&mut file, Offset::CoreEnergy),
-            handle: Mutex::new(file),
+            unit: Unit::new(&handle),
+            package_unit: handle.from_le_bytes(Offset::PackageEnergy as u64),
+            core_unit: handle.from_le_bytes(Offset::CoreEnergy as u64),
+            handle,
         })
     }
 
     fn elapsed(&self) -> IndexMap<String, f32> {
-        let mut file = self.handle.lock().unwrap();
-        let package = read(&mut file, Offset::PackageEnergy);
-        let core = read(&mut file, Offset::CoreEnergy);
-
+        let package = self.handle.from_le_bytes(Offset::PackageEnergy as u64);
+        let core = self.handle.from_le_bytes(Offset::CoreEnergy as u64);
         indexmap!{
             format!("cpu{}:package", self.package_id) => self.unit.joules(package - self.package_unit),
             format!("cpu{}:core", self.package_id) => self.unit.joules(core - self.core_unit),
@@ -70,9 +65,8 @@ impl Core {
     }
 
     fn reset(&mut self) {
-        let mut file = self.handle.lock().unwrap();
-        self.package_unit = read(&mut file, Offset::PackageEnergy);
-        self.core_unit = read(&mut file, Offset::CoreEnergy);
+        self.package_unit = self.handle.from_le_bytes(Offset::PackageEnergy as u64);
+        self.core_unit = self.handle.from_le_bytes(Offset::CoreEnergy as u64);
     }
 }
 
@@ -84,8 +78,8 @@ struct Unit {
 }
 
 impl Unit {
-    pub fn new(file: &mut File) -> Self {
-        let units = read(file, Offset::PowerUnit);
+    pub fn new(handle: &FileHandle) -> Self {
+        let units = handle.from_le_bytes(Offset::PowerUnit as u64);
         Unit {
             time: Mask::TimeUnit.mask(units),
             energy: Mask::EnergyUnit.mask(units),
@@ -111,11 +105,4 @@ impl Mask {
         let unit = (units & mask) >> mask.trailing_zeros();
         0.5f32.powi(unit as i32)
     }
-}
-
-fn read(file: &mut File, offset: Offset) -> u64 {
-    file.seek(SeekFrom::Start(offset as u64)).unwrap();
-    let mut buf = [0; mem::size_of::<u64>()];
-    file.read_exact(&mut buf).unwrap();
-    u64::from_le_bytes(buf)
 }
