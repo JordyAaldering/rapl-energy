@@ -30,23 +30,17 @@ impl Rapl {
     pub fn now() -> Option<Box<dyn Energy>> {
         let package0 = once(Package::now(0)?);
         let packages = package0.chain((1..u8::MAX).map_while(Package::now)).collect();
-        Some(Box::new(Rapl { packages }))
+        Some(Box::new(Self { packages }))
     }
 }
 
 impl Energy for Rapl {
     fn elapsed(&self) -> IndexMap<String, f32> {
-        self.packages
-            .iter()
-            .flat_map(Package::elapsed)
-            .collect()
+        self.packages.iter().flat_map(Package::elapsed).collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        self.packages
-            .iter_mut()
-            .flat_map(Package::elapsed_mut)
-            .collect()
+    fn reset(&mut self) {
+        self.packages.iter_mut().for_each(Package::reset);
     }
 }
 
@@ -56,7 +50,7 @@ impl Package {
         let max_energy_range_uj = read_package_range(package_id);
         let name = package_name(package_id);
         let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
-        Some(Package { name, package_id, max_energy_range_uj, package_energy_uj, subzones })
+        Some(Self { name, package_id, max_energy_range_uj, package_energy_uj, subzones })
     }
 
     fn elapsed(&self) -> IndexMap<String, f32> {
@@ -72,17 +66,9 @@ impl Package {
         res
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        let package_uj_prev = self.package_energy_uj;
+    fn reset(&mut self) {
         self.package_energy_uj = read_package(self.package_id).unwrap();
-        let package_energy = rapl_diff(package_uj_prev, self.package_energy_uj, self.max_energy_range_uj);
-
-        let mut res = IndexMap::with_capacity(1 + self.subzones.len());
-        res.insert(self.name.clone(), package_energy);
-        let subzone_energy_uj = self.subzones.iter_mut().map(Subzone::elapsed_mut);
-        res.extend(subzone_energy_uj);
-
-        res
+        self.subzones.iter_mut().for_each(Subzone::reset);
     }
 }
 
@@ -91,22 +77,17 @@ impl Subzone {
         let energy_uj = read_subzone(package_id, subzone_id)?;
         let max_energy_range_uj = read_subzone_range(package_id, subzone_id);
         let name = subzone_name(package_id, subzone_id);
-        Some(Subzone { name, package_id, subzone_id, max_energy_range_uj, energy_uj })
+        Some(Self { name, package_id, subzone_id, max_energy_range_uj, energy_uj })
     }
 
     fn elapsed(&self) -> (String, f32) {
         let energy_next = read_subzone(self.package_id, self.subzone_id).unwrap();
         let energy = rapl_diff(self.energy_uj, energy_next, self.max_energy_range_uj);
-
         (self.name.clone(), energy)
     }
 
-    fn elapsed_mut(&mut self) -> (String, f32) {
-        let energy_prev = self.energy_uj;
+    fn reset(&mut self) {
         self.energy_uj = read_subzone(self.package_id, self.subzone_id).unwrap();
-        let energy = rapl_diff(energy_prev, self.energy_uj, self.max_energy_range_uj);
-
-        (self.name.clone(), energy)
     }
 }
 
@@ -156,5 +137,6 @@ fn read(path: &String) -> Option<u64> {
     let mut file = OpenOptions::new().read(true).open(path).ok()?;
     let mut buf = String::new();
     file.read_to_string(&mut buf).ok()?;
-    Some(buf.trim().parse::<u64>().unwrap())
+    let energy = buf.trim().parse::<u64>().expect(&format!("Could not parse {}", buf));
+    Some(energy)
 }

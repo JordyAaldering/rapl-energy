@@ -2,18 +2,16 @@ use std::{ffi, ptr};
 
 use crate::*;
 
-type RaplEnergy = Option<*mut dyn Energy>;
-
 #[repr(C)]
-struct RaplElapsed {
+struct EnergyElapsed {
     keys: *const *mut ffi::c_char,
     energy: *const f32,
     len: usize,
 }
 
-impl RaplElapsed {
+impl EnergyElapsed {
     fn default() -> Self {
-        RaplElapsed {
+        Self {
             keys: ptr::null(),
             energy: ptr::null(),
             len: 0,
@@ -32,7 +30,7 @@ impl RaplElapsed {
             .collect();
         cchar_vec.shrink_to_fit();
 
-        let res = RaplElapsed {
+        let res = EnergyElapsed {
             keys: cchar_vec.as_ptr(),
             energy: values.as_ptr(),
             len,
@@ -62,13 +60,13 @@ impl RaplElapsed {
 }
 
 #[no_mangle]
-extern "C" fn rapl_start() -> *mut RaplEnergy {
+extern "C" fn rapl_start() -> *mut Option<*mut dyn Energy> {
     let rapl = Rapl::now().map(Box::into_raw);
     Box::into_raw(Box::new(rapl))
 }
 
 #[no_mangle]
-extern "C" fn rapl_elapsed(energy: &mut RaplEnergy) -> *mut RaplElapsed {
+extern "C" fn energy_elapsed(energy: &mut Option<*mut dyn Energy>) -> *mut EnergyElapsed {
     let energy = unsafe { std::ptr::read(energy) };
 
     if let Some(energy) = energy {
@@ -76,21 +74,21 @@ extern "C" fn rapl_elapsed(energy: &mut RaplEnergy) -> *mut RaplElapsed {
         let elapsed = energy.elapsed();
         std::mem::forget(energy);
 
-        Box::into_raw(Box::new(RaplElapsed::from(elapsed)))
+        Box::into_raw(Box::new(EnergyElapsed::from(elapsed)))
     } else {
-        Box::into_raw(Box::new(RaplElapsed::default()))
+        Box::into_raw(Box::new(EnergyElapsed::default()))
     }
 }
 
 #[no_mangle]
-extern "C" fn elapsed_free(elapsed: &mut RaplElapsed) {
+extern "C" fn energy_elapsed_free(elapsed: &mut EnergyElapsed) {
     let elapsed = unsafe { Box::from_raw(elapsed) };
     elapsed.free();
     drop(elapsed);
 }
 
 #[no_mangle]
-extern "C" fn rapl_free(energy: &mut RaplEnergy) {
+extern "C" fn energy_probe_free(energy: &mut Option<*mut dyn Energy>) {
     let energy = unsafe { Box::from_raw(energy) };
     if let Some(energy) = *energy {
         let energy = unsafe { Box::from_raw(energy) };

@@ -20,10 +20,10 @@ impl Http {
             ))
             .build();
         let energy = read(&agent, &path, &header).unwrap();
-        Some(Box::new(Http { path, header, agent, energy }))
+        Some(Box::new(Self { path, header, agent, energy }))
     }
 
-    fn next(&self) -> f32 {
+    fn read(&self) -> f32 {
         read(&self.agent, &self.path, &self.header).unwrap()
     }
 }
@@ -31,27 +31,20 @@ impl Http {
 impl Energy for Http {
     fn elapsed(&self) -> IndexMap<String, f32> {
         let prev = self.energy;
-        let next = self.next();
-
+        let next = self.read();
         indexmap!{
             self.header.clone() => next - prev,
         }
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        let prev = self.energy;
-        let next = self.next();
-        self.energy = next;
-
-        indexmap!{
-            self.header.clone() => next - prev,
-        }
+    fn reset(&mut self) {
+        self.energy = self.read();
     }
 }
 
 fn read(agent: &ureq::Agent, path: &str, header: &str) -> Option<f32> {
     let resp = agent.get(path).call().ok()?;
     let str = resp.header(header)?;
-    let energy = str.trim().parse::<f32>().unwrap();
+    let energy = str.trim().parse::<f32>().expect(&format!("Could not parse {}", str));
     Some(energy)
 }

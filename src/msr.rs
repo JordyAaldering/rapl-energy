@@ -27,20 +27,6 @@ enum Offset {
     PackageEnergy = 0xC001029B,
 }
 
-#[allow(unused)]
-struct Unit {
-    time: f32,
-    energy: f32,
-    power: f32,
-}
-
-#[repr(u64)]
-enum Mask {
-    TimeUnit   = 0b11110000000000000000,
-    EnergyUnit = 0b00000001111100000000,
-    PowerUnit  = 0b00000000000000001111,
-}
-
 impl Msr {
     pub fn now() -> Option<Box<dyn Energy>> {
         let core0 = once(Core::now(0)?);
@@ -54,11 +40,8 @@ impl Energy for Msr {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        self.cores
-            .iter_mut()
-            .flat_map(Core::elapsed_mut)
-            .collect()
+    fn reset(&mut self) {
+        self.cores.iter_mut().for_each(Core::reset);
     }
 }
 
@@ -86,19 +69,18 @@ impl Core {
         }
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        let package_prev = self.package_unit;
-        let core_prev = self.core_unit;
-
+    fn reset(&mut self) {
         let mut file = self.handle.lock().unwrap();
         self.package_unit = read(&mut file, Offset::PackageEnergy);
         self.core_unit = read(&mut file, Offset::CoreEnergy);
-
-        indexmap!{
-            format!("cpu{}:package", self.package_id) => self.unit.joules(self.package_unit - package_prev),
-            format!("cpu{}:core", self.package_id) => self.unit.joules(self.core_unit - core_prev),
-        }
     }
+}
+
+#[allow(unused)]
+struct Unit {
+    time: f32,
+    energy: f32,
+    power: f32,
 }
 
 impl Unit {
@@ -114,6 +96,13 @@ impl Unit {
     pub fn joules(&self, unit: u64) -> f32 {
         unit as f32 * self.energy
     }
+}
+
+#[repr(u64)]
+enum Mask {
+    TimeUnit   = 0b11110000000000000000,
+    EnergyUnit = 0b00000001111100000000,
+    PowerUnit  = 0b00000000000000001111,
 }
 
 impl Mask {

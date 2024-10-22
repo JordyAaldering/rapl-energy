@@ -19,8 +19,9 @@ fn main() {
     let mut rapl = Rapl::now().unwrap();
 
     for _ in 0..len {
+        rapl.reset();
         thread::sleep(sleep);
-        let e = rapl.elapsed_mut()[0] * precision as f32;
+        let e = rapl.elapsed()[0] * precision as f32;
         energy.push(e);
     }
 

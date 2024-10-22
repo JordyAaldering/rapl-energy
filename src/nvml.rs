@@ -33,42 +33,31 @@ impl<'a> Energy for Nvml<'a> {
         }).collect()
     }
 
-    fn elapsed_mut(&mut self) -> IndexMap<String, f32> {
-        self.devices.iter_mut().map(|device| {
-            let name = device.name.clone();
-            let energy = device.elapsed_mut();
-            (name, energy)
-        }).collect()
+    fn reset(&mut self) {
+        self.devices.iter_mut().for_each(NvmlDevice::reset);
     }
 }
 
 impl<'a> NvmlDevice<'a> {
-    fn new(index: u32) -> Option<NvmlDevice<'a>> {
+    fn new(index: u32) -> Option<Self> {
         let nvml = NVML.as_ref()?;
         let device = nvml.device_by_index(index).ok()?;
         let name = format!("GPU({}) {}", index, device.name().ok()?);
-        let energy = device.total_energy_consumption().ok()?;
-        Some(NvmlDevice { device, name, energy })
+        let energy = read(&device)?;
+        Some(Self { device, name, energy })
     }
 
     fn elapsed(&self) -> f32 {
         let prev = self.energy;
-        let next = self.next();
-        diff(prev, next)
+        let next = read(&self.device).unwrap();
+        (next - prev) as f32 / 1000.0
     }
 
-    fn elapsed_mut(&mut self) -> f32 {
-        let prev = self.energy;
-        let next = self.next();
-        self.energy = next;
-        diff(prev, next)
-    }
-
-    fn next(&self) -> u64 {
-        self.device.total_energy_consumption().unwrap()
+    fn reset(&mut self) {
+        self.energy = read(&self.device).unwrap();
     }
 }
 
-fn diff(prev: u64, next: u64) -> f32 {
-    (next - prev) as f32 / 1000.0
+fn read<'a>(device: &nvml_wrapper::Device<'a>) -> Option<u64> {
+    device.total_energy_consumption().ok()
 }
