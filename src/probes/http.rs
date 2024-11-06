@@ -19,7 +19,7 @@ impl Http {
                 option_env!("CI_PIPELINE_IID").unwrap_or_default()
             ))
             .build();
-        let energy = read(&agent, &path, &header).unwrap();
+        let energy = read(&agent, &path, &header)?;
         Some(Box::new(Self { path, header, agent, energy }))
     }
 
