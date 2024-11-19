@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use libmedium::sensors::{sync_sensors::SyncSensor, SensorSubFunctionType};
 
-use crate::Energy;
+use crate::{Energy, ProbeEnergy};
 
 pub struct Hwmon {
     name: String,
@@ -25,7 +25,7 @@ impl Hwmon {
 }
 
 impl Energy for Hwmon {
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         let prev = &self.energy;
         let next = read(&self.device);
         next.into_iter().map(|(key, next)| {

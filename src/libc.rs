@@ -18,7 +18,7 @@ impl EnergyElapsed {
         }
     }
 
-    fn from(map: IndexMap<String, f32>) -> Self {
+    fn from(map: ProbeEnergy) -> Self {
         let len = map.len();
 
         let (keys, mut values): (Vec<String>, Vec<f32>) = map.into_iter().unzip();

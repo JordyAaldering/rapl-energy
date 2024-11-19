@@ -13,10 +13,11 @@ readme = "README.md"
 crate-type = ["lib", "cdylib"]
 
 [features]
-default = ["http"]
+default = ["http", "statistics"]
 http = ["dep:ureq"]
 hwmon = ["dep:libmedium"]
 nvml = ["dep:nvml-wrapper", "dep:once_cell"]
+statistics = []
 
 [dependencies]
 indexmap = "2.2.6"

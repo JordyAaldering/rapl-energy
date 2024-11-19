@@ -3,7 +3,7 @@ use std::str::FromStr;
 use indexmap::IndexMap;
 
 use crate::file_handle::FileHandle;
-use crate::Energy;
+use crate::{Energy, ProbeEnergy};
 
 pub struct Rapl {
     packages: Vec<Package>,
@@ -32,7 +32,7 @@ impl Rapl {
 }
 
 impl Energy for Rapl {
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         self.packages.iter().flat_map(Package::elapsed).collect()
     }
 
@@ -55,7 +55,7 @@ impl Package {
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones })
     }
 
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = self.handle.read();

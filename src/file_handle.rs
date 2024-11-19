@@ -1,7 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom};
 use std::str::FromStr;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 pub struct FileHandle {
     handle: Mutex<File>,
@@ -34,7 +34,7 @@ impl FileHandle {
         u64::from_le_bytes(buf)
     }
 
-    fn open(&self, offset: u64) -> std::sync::MutexGuard<'_, File> {
+    fn open(&self, offset: u64) -> MutexGuard<'_, File> {
         let mut file = self.handle.lock().unwrap();
         file.seek(SeekFrom::Start(offset)).unwrap();
         file

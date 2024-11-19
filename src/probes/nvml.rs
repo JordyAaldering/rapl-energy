@@ -1,7 +1,6 @@
-use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
-use crate::Energy;
+use crate::{Energy, ProbeEnergy};
 
 static NVML: Lazy<Option<nvml_wrapper::Nvml>> = Lazy::new(|| nvml_wrapper::Nvml::init().ok());
 
@@ -25,7 +24,7 @@ impl<'a> Nvml<'a> {
 }
 
 impl<'a> Energy for Nvml<'a> {
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         self.devices.iter().map(|device| {
             let name = device.name.clone();
             let energy = device.elapsed();

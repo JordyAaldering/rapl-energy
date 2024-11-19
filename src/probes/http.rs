@@ -1,6 +1,6 @@
-use indexmap::{indexmap, IndexMap};
+use indexmap::indexmap;
 
-use crate::Energy;
+use crate::{Energy, ProbeEnergy};
 
 pub struct Http {
     path: String,
@@ -29,7 +29,7 @@ impl Http {
 }
 
 impl Energy for Http {
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         let prev = self.energy;
         let next = self.read();
         indexmap!{

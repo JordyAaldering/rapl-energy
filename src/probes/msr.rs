@@ -1,7 +1,7 @@
-use indexmap::{indexmap, IndexMap};
+use indexmap::indexmap;
 
 use crate::file_handle::FileHandle;
-use crate::Energy;
+use crate::{Energy, ProbeEnergy};
 
 pub struct Msr {
     cores: Vec<Core>,
@@ -44,7 +44,7 @@ impl Msr {
 }
 
 impl Energy for Msr {
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
@@ -66,7 +66,7 @@ impl Core {
         })
     }
 
-    fn elapsed(&self) -> IndexMap<String, f32> {
+    fn elapsed(&self) -> ProbeEnergy {
         let package = Offset::PackageEnergy.read(&self.handle);
         let core = Offset::CoreEnergy.read(&self.handle);
         indexmap!{
