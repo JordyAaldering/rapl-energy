@@ -1,6 +1,6 @@
 [package]
 name = "rapl-energy"
-version = "0.1.16"
+version = "0.1.17"
 edition = "2021"
 categories = ["development-tools::profiling"]
 keywords = ["benchmarking", "energy", "sustainability"]
@@ -21,10 +21,10 @@ statistics = []
 
 [dependencies]
 indexmap = "2.2.6"
-libmedium = { version = "0.11.0", optional = true }
+libmedium = { version = "0.12.0", optional = true }
 nvml-wrapper = { version = "0.10.0", optional = true }
-once_cell = { version = "1.19.0", optional = true }
-ureq = { version = "2.10.0", optional = true }
+once_cell = { version = "1.20.2", optional = true }
+ureq = { version = "2.10.1", optional = true }
 
 [build-dependencies]
-cbindgen = "0.26.0"
+cbindgen = "0.27.0"
