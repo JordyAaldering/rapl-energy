@@ -13,7 +13,7 @@ readme = "README.md"
 crate-type = ["lib", "cdylib"]
 
 [features]
-default = ["http", "statistics"]
+default = ["http", "hwmon", "nvml", "statistics"]
 http = ["dep:ureq"]
 hwmon = ["dep:libmedium"]
 nvml = ["dep:nvml-wrapper", "dep:once_cell"]

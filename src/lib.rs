@@ -4,13 +4,11 @@ mod probes;
 #[cfg(feature = "statistics")]
 mod statistics;
 
-use indexmap::IndexMap;
-
 pub use probes::*;
 #[cfg(feature = "statistics")]
 pub use statistics::*;
 
-pub type ProbeEnergy = IndexMap<String, f32>;
+pub type ProbeEnergy = indexmap::IndexMap<String, f32>;
 
 pub trait Energy {
     /// Gets the total amount of energy consumed in Joules since the last time
@@ -20,6 +18,23 @@ pub trait Energy {
     /// Resets this energy probe, such that the next time `elapsed` is called,
     /// the total amount of energy since this reset is returned.
     fn reset(&mut self);
+}
+
+/// Gets the total amount of energy consumed in Joules since the last time
+/// these energy probes were created/reset.
+pub fn elapsed_all(probes: &Vec<Box<dyn Energy>>) -> ProbeEnergy {
+    probes.iter()
+        .rev()
+        .map(|probe| probe.elapsed())
+        .flatten()
+        .collect()
+}
+
+/// Resets these energy probes, such that the next time `elapsed` is called,
+/// the total amount of energy since this reset is returned.
+pub fn reset_all(probes: &mut Vec<Box<dyn Energy>>) {
+    probes.iter_mut()
+        .for_each(|probe| probe.reset());
 }
 
 /// Creates a chain of energy probes, returning None if no probes are available.
