@@ -20,6 +20,13 @@ pub trait Energy {
     fn reset(&mut self);
 }
 
+/// Given a list of potential probes, filters out any probes that returned None.
+pub fn get_available(potential_probes: Vec<Option<Box<dyn Energy>>>) -> Vec<Box<dyn Energy>> {
+    potential_probes.into_iter()
+        .filter_map(|x| x)
+        .collect()
+}
+
 /// Gets the total amount of energy consumed in Joules since the last time
 /// these energy probes were created/reset.
 pub fn elapsed_all(probes: &Vec<Box<dyn Energy>>) -> ProbeEnergy {
