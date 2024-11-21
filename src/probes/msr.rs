@@ -37,9 +37,13 @@ enum Mask {
 }
 
 impl Msr {
-    pub fn now() -> Option<Box<dyn Energy>> {
+    pub fn now() -> Option<Self> {
         let cores = crate::chain(Core::now)?;
-        Some(Box::new(Msr { cores }))
+        Some(Self { cores })
+    }
+
+    pub fn as_energy(self) -> Box<dyn Energy> {
+        Box::new(self)
     }
 }
 

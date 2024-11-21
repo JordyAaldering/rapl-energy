@@ -10,7 +10,7 @@ pub struct Http {
 }
 
 impl Http {
-    pub fn now(path: String, header: String) -> Option<Box<dyn Energy>> {
+    pub fn now(path: String, header: String) -> Option<Self> {
         let agent = ureq::AgentBuilder::new()
             .user_agent(&format!(
                 "{} {}/{}",
@@ -20,25 +20,25 @@ impl Http {
             ))
             .build();
         let energy = read(&agent, &path, &header)?;
-        Some(Box::new(Self { path, header, agent, energy }))
+        Some(Self { path, header, agent, energy })
     }
 
-    fn read(&self) -> f32 {
-        read(&self.agent, &self.path, &self.header).unwrap()
+    pub fn as_energy(self) -> Box<dyn Energy> {
+        Box::new(self)
     }
 }
 
 impl Energy for Http {
     fn elapsed(&self) -> ProbeEnergy {
         let prev = self.energy;
-        let next = self.read();
+        let next = read(&self.agent, &self.path, &self.header).unwrap();
         indexmap!{
             self.header.clone() => next - prev,
         }
     }
 
     fn reset(&mut self) {
-        self.energy = self.read();
+        self.energy = read(&self.agent, &self.path, &self.header).unwrap()
     }
 }
 

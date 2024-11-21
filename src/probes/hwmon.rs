@@ -10,17 +10,21 @@ pub struct Hwmon {
 }
 
 impl Hwmon {
-    pub fn now(device: libmedium::hwmon::sync_hwmon::Hwmon) -> Option<Box<dyn Energy>> {
+    pub fn now(device: libmedium::hwmon::sync_hwmon::Hwmon) -> Option<Self> {
         let name = device.name().to_string();
         let energy = read(&device);
-        Some(Box::new(Self { name, device, energy }))
+        Some(Self { name, device, energy })
     }
 
-    pub fn all_with_energy() -> Vec<Box<dyn Energy>> {
+    pub fn get_available() -> Vec<Self> {
         let devices = libmedium::parse_hwmons().unwrap();
         devices.into_iter()
             .filter_map(|device| Hwmon::now(device.clone()))
             .collect()
+    }
+
+    pub fn as_energy(self) -> Box<dyn Energy> {
+        Box::new(self)
     }
 }
 
