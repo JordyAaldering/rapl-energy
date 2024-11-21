@@ -25,9 +25,13 @@ struct Subzone {
 }
 
 impl Rapl {
-    pub fn now() -> Option<Box<dyn Energy>> {
+    pub fn now() -> Option<Self> {
         let packages = crate::chain(Package::now)?;
-        Some(Box::new(Self { packages }))
+        Some(Self { packages })
+    }
+
+    pub fn as_energy(self) -> Box<dyn Energy> {
+        Box::new(self)
     }
 }
 
