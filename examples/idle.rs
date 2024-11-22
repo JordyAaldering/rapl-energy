@@ -1,7 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
-use rapl_energy::{Energy, Rapl};
+use rapl_energy::{EnergyProbe, Rapl};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -16,7 +16,7 @@ fn main() {
     let len = seconds * precision;
 
     let mut energy = Vec::with_capacity(len);
-    let mut rapl = Rapl::now().unwrap();
+    let mut rapl = Rapl::now(true).unwrap();
 
     for _ in 0..len {
         rapl.reset();

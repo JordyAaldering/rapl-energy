@@ -1,18 +1,19 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #ifdef __has_include
-    #if __has_include(<rapl_energy.h>)
-        #define RAPL_ENERGY
-        #include <rapl_energy.h>
-    #endif
+#if __has_include(<rapl_energy.h>)
+#define RAPL_ENERGY
+#include <rapl_energy.h>
+#endif
 #endif
 
 int main()
 {
 #ifdef RAPL_ENERGY
     struct Rapl *rapl;
-    rapl = rapl_start();
+    rapl = rapl_start(false);
 
     sleep(1);
 

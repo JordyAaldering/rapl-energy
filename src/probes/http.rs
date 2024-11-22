@@ -1,6 +1,6 @@
 use indexmap::indexmap;
 
-use crate::{Energy, ProbeEnergy};
+use crate::{EnergyProbe, Energy};
 
 pub struct Http {
     path: String,
@@ -23,13 +23,13 @@ impl Http {
         Some(Self { path, header, agent, energy })
     }
 
-    pub fn as_energy(self) -> Box<dyn Energy> {
+    pub fn as_energy(self) -> Box<dyn EnergyProbe> {
         Box::new(self)
     }
 }
 
-impl Energy for Http {
-    fn elapsed(&self) -> ProbeEnergy {
+impl EnergyProbe for Http {
+    fn elapsed(&self) -> Energy {
         let prev = self.energy;
         let next = read(&self.agent, &self.path, &self.header).unwrap();
         indexmap!{

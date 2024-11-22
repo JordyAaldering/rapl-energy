@@ -1,6 +1,6 @@
 [package]
 name = "rapl-energy"
-version = "0.1.18"
+version = "0.1.19"
 edition = "2021"
 categories = ["development-tools::profiling"]
 keywords = ["benchmarking", "energy", "sustainability"]
@@ -13,11 +13,10 @@ readme = "README.md"
 crate-type = ["lib", "cdylib"]
 
 [features]
-default = ["http", "hwmon", "nvml", "statistics"]
+default = ["http", "hwmon", "nvml"]
 http = ["dep:ureq"]
 hwmon = ["dep:libmedium"]
 nvml = ["dep:nvml-wrapper", "dep:once_cell"]
-statistics = []
 
 [dependencies]
 indexmap = "2.2.6"

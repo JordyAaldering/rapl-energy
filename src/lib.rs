@@ -1,45 +1,51 @@
 mod file_handle;
 mod libc;
 mod probes;
-#[cfg(feature = "statistics")]
-mod statistics;
 
 pub use probes::*;
-#[cfg(feature = "statistics")]
-pub use statistics::*;
 
-pub type ProbeEnergy = indexmap::IndexMap<String, f32>;
+pub type Probes = Vec<Box<dyn EnergyProbe>>;
 
-pub trait Energy {
+pub type Energy = indexmap::IndexMap<String, f32>;
+
+pub trait EnergyProbe {
     /// Gets the total amount of energy consumed in Joules since the last time
     /// this energy probe was created/reset.
-    fn elapsed(&self) -> ProbeEnergy;
+    fn elapsed(&self) -> Energy;
 
     /// Resets this energy probe, such that the next time `elapsed` is called,
     /// the total amount of energy since this reset is returned.
     fn reset(&mut self);
 }
 
-/// Gets the total amount of energy consumed in Joules since the last time
-/// these energy probes were created/reset.
-pub fn elapsed_all(probes: &Vec<Box<dyn Energy>>) -> ProbeEnergy {
-    probes.iter()
-        .rev()
-        .map(|probe| probe.elapsed())
-        .flatten()
-        .collect()
+impl EnergyProbe for Probes {
+    /// Gets the total amount of energy consumed in Joules since
+    /// the last time these energy probes were created/reset.
+    fn elapsed(&self) -> Energy {
+        self.iter()
+            .rev()
+            .map(|probe| probe.elapsed())
+            .flatten()
+            .collect()
+    }
+
+    /// Resets these energy probes, such that the next time `elapsed` is
+    /// called, the total amount of energy since this reset is returned.
+    fn reset(&mut self) {
+        self.iter_mut()
+            .for_each(|probe| probe.reset())
+    }
 }
 
-/// Resets these energy probes, such that the next time `elapsed` is called,
-/// the total amount of energy since this reset is returned.
-pub fn reset_all(probes: &mut Vec<Box<dyn Energy>>) {
-    probes.iter_mut()
-        .for_each(|probe| probe.reset());
-}
+pub fn transpose(measurements: &Vec<Energy>) -> Vec<Vec<f32>> {
+    let mut iter_probes: Vec<_> = measurements.iter()
+        .map(|probe_energies| probe_energies.values().cloned())
+        .collect();
 
-/// Creates a chain of energy probes, returning None if no probes are available.
-fn chain<T>(new: fn (u8) -> Option<T>) -> Option<Vec<T>> {
-    let head = new(0)?;
-    let tail = (1..u8::MAX).map_while(new);
-    Some(std::iter::once(head).chain(tail).collect())
+    let n = measurements[0].len();
+    (0..n).map(|_| {
+        iter_probes.iter_mut()
+            .map(|probe_energies| probe_energies.next().unwrap())
+            .collect()
+    }).collect()
 }

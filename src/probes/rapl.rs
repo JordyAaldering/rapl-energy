@@ -3,7 +3,7 @@ use std::str::FromStr;
 use indexmap::IndexMap;
 
 use crate::file_handle::FileHandle;
-use crate::{Energy, ProbeEnergy};
+use crate::{EnergyProbe, Energy};
 
 pub struct Rapl {
     packages: Vec<Package>,
@@ -25,18 +25,20 @@ struct Subzone {
 }
 
 impl Rapl {
-    pub fn now() -> Option<Self> {
-        let packages = crate::chain(Package::now)?;
+    pub fn now(with_subzones: bool) -> Option<Self> {
+        let head = Package::now(0, with_subzones)?;
+        let tail = (1..u8::MAX).map_while(|package_id| Package::now(package_id, with_subzones));
+        let packages = std::iter::once(head).chain(tail).collect();
         Some(Self { packages })
     }
 
-    pub fn as_energy(self) -> Box<dyn Energy> {
+    pub fn as_energy(self) -> Box<dyn EnergyProbe> {
         Box::new(self)
     }
 }
 
-impl Energy for Rapl {
-    fn elapsed(&self) -> ProbeEnergy {
+impl EnergyProbe for Rapl {
+    fn elapsed(&self) -> Energy {
         self.packages.iter().flat_map(Package::elapsed).collect()
     }
 
@@ -46,7 +48,7 @@ impl Energy for Rapl {
 }
 
 impl Package {
-    fn now(package_id: u8) -> Option<Self> {
+    fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
         let path = format!("/sys/class/powercap/intel-rapl:{}", package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
@@ -54,12 +56,16 @@ impl Package {
         let max_energy_range_uj = require(&path, "max_energy_range_uj");
 
         let package_energy_uj = handle.read();
-        let subzones = (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect();
+        let subzones = if with_subzones {
+            (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect()
+        } else {
+            Vec::with_capacity(0)
+        };
 
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones })
     }
 
-    fn elapsed(&self) -> ProbeEnergy {
+    fn elapsed(&self) -> Energy {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = self.handle.read();

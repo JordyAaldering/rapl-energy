@@ -1,7 +1,7 @@
 use indexmap::indexmap;
 
 use crate::file_handle::FileHandle;
-use crate::{Energy, ProbeEnergy};
+use crate::{EnergyProbe, Energy};
 
 pub struct Msr {
     cores: Vec<Core>,
@@ -38,17 +38,19 @@ enum Mask {
 
 impl Msr {
     pub fn now() -> Option<Self> {
-        let cores = crate::chain(Core::now)?;
+        let head = Core::now(0)?;
+        let tail = (1..u8::MAX).map_while(Core::now);
+        let cores = std::iter::once(head).chain(tail).collect();
         Some(Self { cores })
     }
 
-    pub fn as_energy(self) -> Box<dyn Energy> {
+    pub fn as_energy(self) -> Box<dyn EnergyProbe> {
         Box::new(self)
     }
 }
 
-impl Energy for Msr {
-    fn elapsed(&self) -> ProbeEnergy {
+impl EnergyProbe for Msr {
+    fn elapsed(&self) -> Energy {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }
 
@@ -70,7 +72,7 @@ impl Core {
         })
     }
 
-    fn elapsed(&self) -> ProbeEnergy {
+    fn elapsed(&self) -> Energy {
         let package = Offset::PackageEnergy.read(&self.handle);
         let core = Offset::CoreEnergy.read(&self.handle);
         indexmap!{

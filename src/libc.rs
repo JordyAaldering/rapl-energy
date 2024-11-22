@@ -10,7 +10,7 @@ struct EnergyElapsed {
 }
 
 impl EnergyElapsed {
-    fn from(energy: ProbeEnergy) -> Self {
+    fn from(energy: Energy) -> Self {
         let len = energy.len();
 
         let (keys, mut values): (Vec<String>, Vec<f32>) = energy.into_iter().unzip();
@@ -46,8 +46,8 @@ impl EnergyElapsed {
 }
 
 #[no_mangle]
-extern "C" fn rapl_start() -> Box<Rapl> {
-    let rapl = Rapl::now().unwrap();
+extern "C" fn rapl_start(with_subzones: bool) -> Box<Rapl> {
+    let rapl = Rapl::now(with_subzones).unwrap();
     Box::new(rapl)
 }
 
