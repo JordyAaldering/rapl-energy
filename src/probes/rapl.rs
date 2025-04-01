@@ -1,12 +1,24 @@
-use std::{fmt, iter, str};
+use std::path::Path;
+use std::str::FromStr;
 
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 
 use crate::file_handle::FileHandle;
 use crate::{EnergyProbe, Energy};
 
-const PREFIX: &'static str = "/sys/class/powercap";
-//const PREFIX: &'static str = "/sys/devices/virtual/powercap";
+/// RAPL can exist in either `/sys/devices` or `/sys/class`. Determine the
+/// correct location, with a preference for `/sys/devices` if both exist.
+/// Note the even on AMD processors, the path contains `intel-rapl`.
+static PREFIX: Lazy<&'static str> = Lazy::new(|| {
+    const DEVICES_PREFIX: &'static str = "/sys/devices/virtual/powercap/intel-rapl";
+    const CLASS_PREFIX: &'static str = "/sys/class/powercap/intel-rapl";
+    if Path::new(DEVICES_PREFIX).exists() {
+        DEVICES_PREFIX
+    } else {
+        CLASS_PREFIX
+    }
+});
 
 pub struct Rapl {
     packages: Vec<Package>,
@@ -32,7 +44,7 @@ impl Rapl {
     pub fn now(with_subzones: bool) -> Option<Self> {
         let head = Package::now(0, with_subzones)?;
         let tail = (1..u8::MAX).map_while(|package_id| Package::now(package_id, with_subzones));
-        let packages = iter::once(head).chain(tail).collect();
+        let packages = std::iter::once(head).chain(tail).collect();
         Some(Self { packages })
     }
 
@@ -53,7 +65,7 @@ impl EnergyProbe for Rapl {
 
 impl Package {
     fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
-        let path = format!("{}/intel-rapl:{}", PREFIX, package_id);
+        let path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
         let name = require(&path, "name");
@@ -100,7 +112,7 @@ impl Package {
 
 impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
-        let package_path = format!("{}/intel-rapl:{}", PREFIX, package_id);
+        let package_path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path)).ok()?;
 
@@ -115,7 +127,7 @@ impl Subzone {
     }
 
     fn dram_now(package_id: u8) -> Option<Self> {
-        let path = format!("{}/intel-rapl-mmio/intel-rapl-mmio:{}", PREFIX, package_id);
+        let path = format!("{}-mmio/intel-rapl-mmio:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
         let package_name: String = require(&path, "name");
@@ -148,7 +160,7 @@ fn diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f32 {
     energy_uj as f32 / 1e6
 }
 
-fn require<T: str::FromStr>(path: &str, file: &str) -> T where T::Err: fmt::Debug {
+fn require<T: FromStr>(path: &str, file: &str) -> T where T::Err: std::fmt::Debug {
     let path = format!("{}/{}", path, file);
     let handle = FileHandle::new(&path).unwrap();
     handle.read::<T>()
