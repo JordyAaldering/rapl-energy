@@ -1,7 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
-use rapl_energy::{EnergyProbe, MsrAmd};
+use rapl_energy::{Probe, MsrAmd};
 
 fn main() {
     let msr = MsrAmd::now().unwrap();

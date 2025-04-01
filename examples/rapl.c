@@ -3,21 +3,21 @@
 #include <unistd.h>
 
 #ifdef __has_include
-#if __has_include(<rapl_energy.h>)
-#define RAPL_ENERGY
-#include <rapl_energy.h>
-#endif
+# if __has_include(<rapl_energy.h>)
+#  define RAPL_ENERGY
+#  include <rapl_energy.h>
+# endif
 #endif
 
 int main()
 {
 #ifdef RAPL_ENERGY
     struct Rapl *rapl;
-    rapl = rapl_start(false);
+    rapl = rapl_start(true);
 
     sleep(1);
 
-    struct EnergyElapsed *elapsed;
+    struct RaplElapsed *elapsed;
     elapsed = rapl_elapsed(&rapl);
 
     for (uintptr_t i = 0; i < elapsed->len; i++) {

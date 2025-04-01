@@ -1,6 +1,6 @@
 use once_cell::sync::Lazy;
 
-use crate::{EnergyProbe, Energy};
+use crate::{Probe, Elapsed};
 
 static NVML: Lazy<Option<nvml_wrapper::Nvml>> = Lazy::new(|| nvml_wrapper::Nvml::init().ok());
 
@@ -15,20 +15,20 @@ pub struct NvmlDevice<'a> {
 }
 
 impl<'a> Nvml<'a> {
-    pub fn now() -> Option<Box<dyn EnergyProbe>> {
+    pub fn now() -> Option<Box<dyn Probe>> {
         let nvml = NVML.as_ref()?;
         let count = nvml.device_count().ok()?;
         let devices = (0..count).filter_map(NvmlDevice::new).collect();
         Some(Box::new(Nvml { devices }))
     }
 
-    pub fn as_energy(self) -> Box<dyn EnergyProbe + 'a> {
+    pub fn as_energy(self) -> Box<dyn Probe + 'a> {
         Box::new(self)
     }
 }
 
-impl<'a> EnergyProbe for Nvml<'a> {
-    fn elapsed(&self) -> Energy {
+impl<'a> Probe for Nvml<'a> {
+    fn elapsed(&self) -> Elapsed {
         self.devices.iter().map(|device| {
             let name = device.name.clone();
             let energy = device.elapsed();

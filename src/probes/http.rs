@@ -1,12 +1,12 @@
 use indexmap::indexmap;
 
-use crate::{EnergyProbe, Energy};
+use crate::{Probe, Elapsed};
 
 pub struct Http {
     path: String,
     header: String,
     agent: ureq::Agent,
-    energy: f32,
+    value: f32,
 }
 
 impl Http {
@@ -20,18 +20,18 @@ impl Http {
             ))
             .build();
         let agent = ureq::Agent::new_with_config(config);
-        let energy = read(&agent, &path, &header)?;
-        Some(Self { path, header, agent, energy })
+        let value = read(&agent, &path, &header)?;
+        Some(Self { path, header, agent, value })
     }
 
-    pub fn as_energy(self) -> Box<dyn EnergyProbe> {
+    pub fn boxed(self) -> Box<dyn Probe> {
         Box::new(self)
     }
 }
 
-impl EnergyProbe for Http {
-    fn elapsed(&self) -> Energy {
-        let prev = self.energy;
+impl Probe for Http {
+    fn elapsed(&self) -> Elapsed {
+        let prev = self.value;
         let next = read(&self.agent, &self.path, &self.header).unwrap();
         indexmap!{
             self.header.clone() => next - prev,
@@ -39,13 +39,13 @@ impl EnergyProbe for Http {
     }
 
     fn reset(&mut self) {
-        self.energy = read(&self.agent, &self.path, &self.header).unwrap()
+        self.value = read(&self.agent, &self.path, &self.header).unwrap()
     }
 }
 
 fn read(agent: &ureq::Agent, path: &str, header: &str) -> Option<f32> {
     let resp = agent.get(path).call().ok()?;
     let str = resp.headers().get(header)?.to_str().ok()?;
-    let energy = str.trim().parse::<f32>().expect(&format!("Could not parse {}", str));
-    Some(energy)
+    let value = str.trim().parse::<f32>().expect(&format!("Could not parse {}", str));
+    Some(value)
 }

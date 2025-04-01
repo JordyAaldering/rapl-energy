@@ -5,7 +5,7 @@ use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 
 use crate::file_handle::FileHandle;
-use crate::{EnergyProbe, Energy};
+use crate::{Probe, Elapsed};
 
 /// RAPL can exist in either `/sys/class` or `/sys/devices`. Determine the
 /// correct location, with a preference for `/sys/class` if both exist.
@@ -48,13 +48,13 @@ impl Rapl {
         Some(Self { packages })
     }
 
-    pub fn as_energy(self) -> Box<dyn EnergyProbe> {
+    pub fn as_energy(self) -> Box<dyn Probe> {
         Box::new(self)
     }
 }
 
-impl EnergyProbe for Rapl {
-    fn elapsed(&self) -> Energy {
+impl Probe for Rapl {
+    fn elapsed(&self) -> Elapsed {
         self.packages.iter().flat_map(Package::elapsed).collect()
     }
 
@@ -83,7 +83,7 @@ impl Package {
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones, dram })
     }
 
-    fn elapsed(&self) -> Energy {
+    fn elapsed(&self) -> Elapsed {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = self.handle.read();
