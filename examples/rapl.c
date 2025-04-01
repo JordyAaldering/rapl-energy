@@ -21,10 +21,10 @@ int main()
     elapsed = rapl_elapsed(&rapl);
 
     for (uintptr_t i = 0; i < elapsed->len; i++) {
-        printf("%s: %f\n", elapsed->keys[i], elapsed->energy[i]);
+        printf("%s: %f\n", elapsed->keys[i], elapsed->values[i]);
     }
 
-    elapsed_free(elapsed);
+    rapl_elapsed_free(elapsed);
     rapl_free(rapl);
     return 0;
 #else
