@@ -3,7 +3,7 @@ use indexmap::indexmap;
 use crate::file_handle::FileHandle;
 use crate::{EnergyProbe, Energy};
 
-pub struct Msr {
+pub struct MsrAmd {
     cores: Vec<Core>,
 }
 
@@ -36,7 +36,7 @@ enum Mask {
     PowerUnit  = 0b00000000000000001111,
 }
 
-impl Msr {
+impl MsrAmd {
     pub fn now() -> Option<Self> {
         let head = Core::now(0)?;
         let tail = (1..u8::MAX).map_while(Core::now);
@@ -49,7 +49,7 @@ impl Msr {
     }
 }
 
-impl EnergyProbe for Msr {
+impl EnergyProbe for MsrAmd {
     fn elapsed(&self) -> Energy {
         self.cores.iter().flat_map(Core::elapsed).collect()
     }

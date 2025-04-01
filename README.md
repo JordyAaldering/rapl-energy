@@ -57,17 +57,16 @@ You might need to run `modprobe` as well.
 modprobe msr
 ```
 
-One can then print the accumulated energy value as follows.
-(Where `-a` prints all CPUs, and `-u` prints the value as an unsigned decimal.)
-On my AMD system, the address is `0xC001029A`. Check the documentation of your
-CPU to find your address.
+One can then print the accumulated energy value as follows. (Where `-a` prints
+all CPUs, and `-u` prints the value as an unsigned decimal.) On my AMD system
+the address is `0xC001029A`, which I found in https://github.com/amd/amd_energy.
+Check the documentation of your CPU to find your address.
 
 ```bash
 sudo rdmsr 0xC001029A -au
 ```
 
-It seems that the executable must be run with sudo though.
-I still need to figure out if perhaps this can be done instead with a group.
+Any executable making use of these MSR measurements must be run with sudo.
 
 ```bash
 sudo ./target/debug/examples/msr
@@ -75,9 +74,9 @@ sudo ./target/debug/examples/msr
 
 ### MSR group
 
-Ideally I would like to create a group for MSR, to resolve the permission
-issues. However, this sadly does not resolve the problem. Please let me know
-if you know of a way to allow this.
+Ideally I would like to create a group for MSR, to avoid needing to run with
+sudo every time. However, the approach below sadly does not resolve the problem.
+Please let me know if you know of a way to do this.
 
 ```bash
 sudo groupadd msr
