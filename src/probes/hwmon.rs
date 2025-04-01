@@ -22,10 +22,6 @@ impl Hwmon {
             .filter_map(|device| Hwmon::now(device.clone()))
             .collect()
     }
-
-    pub fn as_energy(self) -> Box<dyn Probe> {
-        Box::new(self)
-    }
 }
 
 impl Probe for Hwmon {

@@ -23,10 +23,6 @@ impl Http {
         let value = read(&agent, &path, &header)?;
         Some(Self { path, header, agent, value })
     }
-
-    pub fn boxed(self) -> Box<dyn Probe> {
-        Box::new(self)
-    }
 }
 
 impl Probe for Http {

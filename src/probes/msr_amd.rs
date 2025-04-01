@@ -43,10 +43,6 @@ impl MsrAmd {
         let cores = std::iter::once(head).chain(tail).collect();
         Some(Self { cores })
     }
-
-    pub fn as_energy(self) -> Box<dyn Probe> {
-        Box::new(self)
-    }
 }
 
 impl Probe for MsrAmd {

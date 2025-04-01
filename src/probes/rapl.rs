@@ -47,10 +47,6 @@ impl Rapl {
         let packages = std::iter::once(head).chain(tail).collect();
         Some(Self { packages })
     }
-
-    pub fn as_energy(self) -> Box<dyn Probe> {
-        Box::new(self)
-    }
 }
 
 impl Probe for Rapl {

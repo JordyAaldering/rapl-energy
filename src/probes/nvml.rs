@@ -21,10 +21,6 @@ impl<'a> Nvml<'a> {
         let devices = (0..count).filter_map(NvmlDevice::new).collect();
         Some(Box::new(Nvml { devices }))
     }
-
-    pub fn as_energy(self) -> Box<dyn Probe + 'a> {
-        Box::new(self)
-    }
 }
 
 impl<'a> Probe for Nvml<'a> {
