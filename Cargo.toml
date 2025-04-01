@@ -6,7 +6,7 @@ categories = ["development-tools::profiling"]
 keywords = ["benchmarking", "energy", "sustainability"]
 description = "Small library for getting the CPU energy consumption from RAPL"
 repository = "https://github.com/JordyAaldering/rapl-energy"
-license = "Apache-2.0"
+license = "GPL-3.0"
 readme = "README.md"
 
 [lib]
