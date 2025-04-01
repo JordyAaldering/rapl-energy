@@ -11,7 +11,7 @@ pub struct Http {
 
 impl Http {
     pub fn now(path: String, header: String) -> Option<Self> {
-        let agent = ureq::AgentBuilder::new()
+        let config = ureq::Agent::config_builder()
             .user_agent(&format!(
                 "{} {}/{}",
                 env!("CARGO_PKG_NAME"),
@@ -19,6 +19,7 @@ impl Http {
                 option_env!("CI_PIPELINE_IID").unwrap_or_default()
             ))
             .build();
+        let agent = ureq::Agent::new_with_config(config);
         let energy = read(&agent, &path, &header)?;
         Some(Self { path, header, agent, energy })
     }
@@ -44,7 +45,7 @@ impl EnergyProbe for Http {
 
 fn read(agent: &ureq::Agent, path: &str, header: &str) -> Option<f32> {
     let resp = agent.get(path).call().ok()?;
-    let str = resp.header(header)?;
+    let str = resp.headers().get(header)?.to_str().ok()?;
     let energy = str.trim().parse::<f32>().expect(&format!("Could not parse {}", str));
     Some(energy)
 }
