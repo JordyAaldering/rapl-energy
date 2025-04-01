@@ -7,16 +7,16 @@ use once_cell::sync::Lazy;
 use crate::file_handle::FileHandle;
 use crate::{EnergyProbe, Energy};
 
-/// RAPL can exist in either `/sys/devices` or `/sys/class`. Determine the
-/// correct location, with a preference for `/sys/devices` if both exist.
+/// RAPL can exist in either `/sys/class` or `/sys/devices`. Determine the
+/// correct location, with a preference for `/sys/class` if both exist.
 /// Note the even on AMD processors, the path contains `intel-rapl`.
 static PREFIX: Lazy<&'static str> = Lazy::new(|| {
-    const DEVICES_PREFIX: &'static str = "/sys/devices/virtual/powercap/intel-rapl";
     const CLASS_PREFIX: &'static str = "/sys/class/powercap/intel-rapl";
-    if Path::new(DEVICES_PREFIX).exists() {
-        DEVICES_PREFIX
-    } else {
+    const DEVICES_PREFIX: &'static str = "/sys/devices/virtual/powercap/intel-rapl";
+    if Path::new(CLASS_PREFIX).exists() {
         CLASS_PREFIX
+    } else {
+        DEVICES_PREFIX
     }
 });
 
@@ -131,7 +131,7 @@ impl Subzone {
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
         let package_name: String = require(&path, "name");
-        let name = format!("{}-dram", package_name);
+        let name = format!("{}-mmio", package_name);
 
         let max_energy_range_uj = require(&path, "max_energy_range_uj");
 
