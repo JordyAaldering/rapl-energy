@@ -1,9 +1,12 @@
-use std::str::FromStr;
+use std::{fmt, iter, str};
 
 use indexmap::IndexMap;
 
 use crate::file_handle::FileHandle;
 use crate::{EnergyProbe, Energy};
+
+const PREFIX: &'static str = "/sys/class/powercap";
+//const PREFIX: &'static str = "/sys/devices/virtual/powercap";
 
 pub struct Rapl {
     packages: Vec<Package>,
@@ -15,6 +18,7 @@ struct Package {
     max_energy_range_uj: u64,
     package_energy_uj: u64,
     subzones: Vec<Subzone>,
+    dram: Option<Subzone>,
 }
 
 struct Subzone {
@@ -28,7 +32,7 @@ impl Rapl {
     pub fn now(with_subzones: bool) -> Option<Self> {
         let head = Package::now(0, with_subzones)?;
         let tail = (1..u8::MAX).map_while(|package_id| Package::now(package_id, with_subzones));
-        let packages = std::iter::once(head).chain(tail).collect();
+        let packages = iter::once(head).chain(tail).collect();
         Some(Self { packages })
     }
 
@@ -49,7 +53,7 @@ impl EnergyProbe for Rapl {
 
 impl Package {
     fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
-        let path = format!("/sys/class/powercap/intel-rapl:{}", package_id);
+        let path = format!("{}/intel-rapl:{}", PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
         let name = require(&path, "name");
@@ -62,7 +66,9 @@ impl Package {
             Vec::with_capacity(0)
         };
 
-        Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones })
+        let dram = Subzone::dram_now(package_id);
+
+        Some(Self { handle, name, max_energy_range_uj, package_energy_uj, subzones, dram })
     }
 
     fn elapsed(&self) -> Energy {
@@ -75,18 +81,26 @@ impl Package {
         let subzone_energy_uj = self.subzones.iter().map(Subzone::elapsed);
         res.extend(subzone_energy_uj);
 
+        if let Some(dram) = &self.dram {
+            let (k, v) = dram.elapsed();
+            res.insert(k, v);
+        }
+
         res
     }
 
     fn reset(&mut self) {
         self.package_energy_uj = self.handle.read();
         self.subzones.iter_mut().for_each(Subzone::reset);
+        if let Some(dram) = &mut self.dram {
+            dram.reset();
+        }
     }
 }
 
 impl Subzone {
     fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
-        let package_path = format!("/sys/class/powercap/intel-rapl:{}", package_id);
+        let package_path = format!("{}/intel-rapl:{}", PREFIX, package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path)).ok()?;
 
@@ -95,6 +109,19 @@ impl Subzone {
         let name = format!("{}-{}", package_name, subzone_name);
 
         let max_energy_range_uj = require(&subzone_path, "max_energy_range_uj");
+
+        let energy_uj = handle.read();
+        Some(Self { handle, name, max_energy_range_uj, energy_uj })
+    }
+
+    fn dram_now(package_id: u8) -> Option<Self> {
+        let path = format!("{}/intel-rapl-mmio/intel-rapl-mmio:{}", PREFIX, package_id);
+        let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
+
+        let package_name: String = require(&path, "name");
+        let name = format!("{}-dram", package_name);
+
+        let max_energy_range_uj = require(&path, "max_energy_range_uj");
 
         let energy_uj = handle.read();
         Some(Self { handle, name, max_energy_range_uj, energy_uj })
@@ -121,7 +148,7 @@ fn diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f32 {
     energy_uj as f32 / 1e6
 }
 
-fn require<T: FromStr>(path: &str, file: &str) -> T where T::Err: std::fmt::Debug {
+fn require<T: str::FromStr>(path: &str, file: &str) -> T where T::Err: fmt::Debug {
     let path = format!("{}/{}", path, file);
     let handle = FileHandle::new(&path).unwrap();
     handle.read::<T>()
