@@ -15,11 +15,11 @@ pub struct NvmlDevice<'a> {
 }
 
 impl<'a> Nvml<'a> {
-    pub fn now() -> Option<Box<dyn Probe>> {
+    pub fn now() -> Option<Self> {
         let nvml = NVML.as_ref()?;
         let count = nvml.device_count().ok()?;
         let devices = (0..count).filter_map(NvmlDevice::new).collect();
-        Some(Box::new(Nvml { devices }))
+        Some(Self { devices })
     }
 }
 

@@ -1,16 +1,18 @@
 use indexmap::IndexMap;
-use libmedium::sensors::{sync_sensors::SyncSensor, SensorSubFunctionType};
+use libmedium::hwmon::sync_hwmon;
+use libmedium::sensors::SensorSubFunctionType;
+use libmedium::sensors::sync_sensors::SyncSensor;
 
 use crate::{Probe, Elapsed};
 
 pub struct Hwmon {
     name: String,
-    device: libmedium::hwmon::sync_hwmon::Hwmon,
+    device: sync_hwmon::Hwmon,
     energy: IndexMap<u16, u64>
 }
 
 impl Hwmon {
-    pub fn now(device: libmedium::hwmon::sync_hwmon::Hwmon) -> Option<Self> {
+    pub fn now(device: sync_hwmon::Hwmon) -> Option<Self> {
         let name = device.name().to_string();
         let energy = read(&device);
         Some(Self { name, device, energy })
@@ -40,7 +42,7 @@ impl Probe for Hwmon {
     }
 }
 
-fn read(device: &libmedium::hwmon::sync_hwmon::Hwmon) -> IndexMap<u16, u64> {
+fn read(device: &sync_hwmon::Hwmon) -> IndexMap<u16, u64> {
     device.energies()
         .iter()
         .filter_map(|(&key, sensor)| {

@@ -1,5 +1,3 @@
-LOCAL=$(HOME)/.local
-
 all: debug
 
 debug:
@@ -9,17 +7,12 @@ release:
 	cargo build --release
 
 install: release
-	cp target/release/rapl_energy.h $(LOCAL)/include/
-	cp target/release/librapl_energy.so $(LOCAL)/lib/
+	cp target/release/rapl_energy.h $(HOME)/.local/include/
+	cp target/release/librapl_energy.so $(HOME)/.local/lib/
 
 uninstall:
-	$(RM) $(LOCAL)/include/rapl_energy.h
-	$(RM) $(LOCAL)/lib/librapl_energy.so
-
-test_c: install
-	gcc examples/rapl.c -Wall -Wextra -fsanitize=address -fsanitize=undefined -lrapl_energy -o rapl.out
-	./rapl.out
-	$(RM) rapl.out
+	$(RM) $(HOME)/.local/include/rapl_energy.h
+	$(RM) $(HOME)/.local/lib/librapl_energy.so
 
 clean:
 	cargo clean
