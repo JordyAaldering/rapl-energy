@@ -3,14 +3,14 @@ use std::{ffi, mem};
 use crate::*;
 
 #[repr(C)]
-struct RaplElapsed {
+pub struct RaplElapsed {
     keys: *const *mut ffi::c_char,
     values: *const f32,
     len: usize,
 }
 
 impl RaplElapsed {
-    fn from(elapsed: Elapsed) -> Self {
+    pub fn from(elapsed: Elapsed) -> Self {
         let len = elapsed.len();
 
         let (keys, mut values): (Vec<String>, Vec<f32>) = elapsed.into_iter().unzip();
@@ -33,7 +33,7 @@ impl RaplElapsed {
         res
     }
 
-    fn free(&self) {
+    pub fn free(&self) {
         let keys = unsafe { Vec::from_raw_parts(self.keys as *mut *mut ffi::c_char, self.len, self.len) };
         for key in keys {
             let cstr = unsafe { ffi::CString::from_raw(key) };
