@@ -1,4 +1,4 @@
-mod libc;
+pub mod libc;
 mod file_handle;
 mod probes;
 
