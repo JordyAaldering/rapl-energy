@@ -89,7 +89,7 @@ impl Probe for Rapl {
 }
 
 impl Package {
-    fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
+    pub fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
         let path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
@@ -106,12 +106,12 @@ impl Package {
             Vec::with_capacity(0)
         };
 
-        let dram = Subzone::dram_now(package_id);
+        let dram = Subzone::mmio_now(package_id);
 
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, constraints, subzones, dram })
     }
 
-    fn elapsed(&self) -> Elapsed {
+    pub fn elapsed(&self) -> Elapsed {
         let mut res = IndexMap::with_capacity(1 + self.subzones.len());
 
         let package_energy_next = self.handle.read();
@@ -129,7 +129,7 @@ impl Package {
         res
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.package_energy_uj = self.handle.read();
         self.subzones.iter_mut().for_each(Subzone::reset);
         if let Some(dram) = &mut self.dram {
@@ -139,7 +139,7 @@ impl Package {
 }
 
 impl Subzone {
-    fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
+    pub fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
         let package_path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path)).ok()?;
@@ -157,7 +157,7 @@ impl Subzone {
         Some(Self { handle, name, max_energy_range_uj, energy_uj, constraints })
     }
 
-    fn dram_now(package_id: u8) -> Option<Self> {
+    pub fn mmio_now(package_id: u8) -> Option<Self> {
         let path = format!("{}-mmio/intel-rapl-mmio:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
 
@@ -171,19 +171,19 @@ impl Subzone {
         Some(Self { handle, name, max_energy_range_uj, energy_uj, constraints: Vec::new() })
     }
 
-    fn elapsed(&self) -> (String, f32) {
+    pub fn elapsed(&self) -> (String, f32) {
         let energy_next = self.handle.read();
         let energy = diff(self.energy_uj, energy_next, self.max_energy_range_uj);
         (self.name.clone(), energy)
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.energy_uj = self.handle.read();
     }
 }
 
 impl Constraint {
-    fn now(constraint_id: u8, package_id: u8, subzone_id: Option<u8>) -> Option<Self> {
+    pub fn now(constraint_id: u8, package_id: u8, subzone_id: Option<u8>) -> Option<Self> {
         let path = if let Some(subzone_id) = subzone_id {
             format!("{}/intel-rapl:{}:{}", *PREFIX, package_id, subzone_id)
         } else {
