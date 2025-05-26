@@ -212,14 +212,10 @@ impl Constraint {
     }
 
     pub fn set_power_limit_uw(&mut self, value: u64) {
-        assert!(value > 0);
-        assert!(self.max_power_uw.is_none_or(|max| value <= max));
         self.power_limit_handle.write(value);
     }
 
     pub fn set_time_window_us(&mut self, value: u64) {
-        assert!(value > 0);
-        assert!(self.max_time_window_us.is_none_or(|max| value <= max));
         self.time_window_handle.write(value);
     }
 }
