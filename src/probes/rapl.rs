@@ -21,10 +21,12 @@ static PREFIX: Lazy<&'static str> = Lazy::new(|| {
 });
 
 /// https://www.kernel.org/doc/html/latest/power/powercap/powercap.html
+#[derive(Debug)]
 pub struct Rapl {
     pub packages: Vec<Package>,
 }
 
+#[derive(Debug)]
 pub struct Package {
     handle: FileHandle,
     name: String,
@@ -35,6 +37,7 @@ pub struct Package {
     pub dram: Option<Subzone>,
 }
 
+#[derive(Debug)]
 pub struct Subzone {
     handle: FileHandle,
     name: String,
@@ -43,6 +46,7 @@ pub struct Subzone {
     pub constraints: Vec<Constraint>,
 }
 
+#[derive(Debug)]
 pub struct Constraint {
     /// constraint_X_name (ro) (optional)
     /// An optional name of the constraint

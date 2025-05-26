@@ -3,6 +3,7 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::str::FromStr;
 use std::sync::{Mutex, MutexGuard};
 
+#[derive(Debug)]
 pub struct FileHandle {
     handle: Mutex<File>,
 }
