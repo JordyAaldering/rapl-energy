@@ -58,7 +58,7 @@ impl Probe for MsrAmd {
 impl Core {
     fn now(package_id: u8) -> Option<Self> {
         let path = format!("/dev/cpu/{}/msr", package_id);
-        let handle = FileHandle::new(&path).ok()?;
+        let handle = FileHandle::new(&path, false).ok()?;
         Some(Core {
             package_id,
             package: Offset::PackageEnergy.read(&handle),

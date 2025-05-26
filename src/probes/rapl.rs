@@ -95,7 +95,7 @@ impl Probe for Rapl {
 impl Package {
     pub fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
         let path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
-        let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
+        let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
         let name = required(&path, "name");
         let max_energy_range_uj = required(&path, "max_energy_range_uj");
@@ -146,7 +146,7 @@ impl Subzone {
     pub fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
         let package_path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
-        let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path)).ok()?;
+        let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path), false).ok()?;
 
         let package_name: String = required(&package_path, "name");
         let subzone_name: String = required(&subzone_path, "name");
@@ -163,7 +163,7 @@ impl Subzone {
 
     pub fn mmio_now(package_id: u8) -> Option<Self> {
         let path = format!("{}-mmio/intel-rapl-mmio:{}", *PREFIX, package_id);
-        let handle = FileHandle::new(&format!("{}/energy_uj", path)).ok()?;
+        let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
         let package_name: String = required(&path, "name");
         let name = format!("{}-mmio", package_name);
@@ -195,8 +195,8 @@ impl Constraint {
         };
 
         // Power limit is required; if it does not exist then this constraint does not exist
-        let power_limit_handle = FileHandle::new(&format!("{}/constraint_{}_{}", path, constraint_id, "power_limit_uw")).ok()?;
-        let time_window_handle = FileHandle::new(&format!("{}/constraint_{}_{}", path, constraint_id, "time_window_us")).ok()?;
+        let power_limit_handle = FileHandle::new(&format!("{}/constraint_{}_{}", path, constraint_id, "power_limit_uw"), true).ok()?;
+        let time_window_handle = FileHandle::new(&format!("{}/constraint_{}_{}", path, constraint_id, "time_window_us"), true).ok()?;
 
         Some(Self {
             name:               optional(&path, &format!("constraint_{}_{}", constraint_id, "name")),
@@ -226,13 +226,13 @@ impl Constraint {
 
 fn required<T: FromStr>(path: &str, file: &str) -> T where T::Err: std::fmt::Debug {
     let path = format!("{}/{}", path, file);
-    let handle = FileHandle::new(&path).unwrap();
+    let handle = FileHandle::new(&path, false).unwrap();
     handle.read::<T>()
 }
 
 fn optional<T: FromStr>(path: &str, file: &str) -> Option<T> where T::Err: std::fmt::Debug {
     let path = format!("{}/{}", path, file);
-    let handle = FileHandle::new(&path).ok()?;
+    let handle = FileHandle::new(&path, false).ok()?;
     Some(handle.read::<T>())
 }
 

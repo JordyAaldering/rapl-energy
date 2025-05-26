@@ -9,8 +9,8 @@ pub struct FileHandle {
 }
 
 impl FileHandle {
-    pub fn new(path: &str) -> io::Result<Self> {
-        let file = OpenOptions::new().read(true).open(path)?;
+    pub fn new(path: &str, write: bool) -> io::Result<Self> {
+        let file = OpenOptions::new().read(true).write(write).open(path)?;
         Ok(Self { handle: Mutex::new(file) })
     }
 
