@@ -27,7 +27,7 @@ impl FileHandle {
 
     pub fn write(&self, value: u64) {
         let mut file = self.open(0);
-        writeln!(file, "{}", value).unwrap();
+        write!(file, "{}", value).unwrap();
     }
 
     pub fn from_le_bytes(&self, offset: u64) -> u64 {
