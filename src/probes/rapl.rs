@@ -34,7 +34,6 @@ pub struct Package {
     pub max_energy_range_uj: u64,
     pub constraints: Vec<Constraint>,
     pub subzones: Vec<Subzone>,
-    pub dram: Option<Subzone>,
 }
 
 #[derive(Debug)]
@@ -77,7 +76,8 @@ impl Rapl {
     pub fn now(with_subzones: bool) -> Option<Self> {
         let head = Package::now(0, with_subzones)?;
         let tail = (1..u8::MAX).map_while(|package_id| Package::now(package_id, with_subzones));
-        let packages = std::iter::once(head).chain(tail).collect();
+        let mmio = (0..u8::MAX).map_while(|package_id| Package::now_mmio(package_id, with_subzones));
+        let packages = std::iter::once(head).chain(tail).chain(mmio).collect();
         Some(Self { packages })
     }
 }
@@ -110,9 +110,27 @@ impl Package {
             Vec::with_capacity(0)
         };
 
-        let dram = Subzone::mmio_now(package_id);
+        Some(Self { handle, name, max_energy_range_uj, package_energy_uj, constraints, subzones })
+    }
 
-        Some(Self { handle, name, max_energy_range_uj, package_energy_uj, constraints, subzones, dram })
+    pub fn now_mmio(package_id: u8, with_subzones: bool) -> Option<Self> {
+        let path = format!("{}/intel-rapl-mmio:{}", *PREFIX, package_id);
+        let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
+
+        let name = required(&path, "name");
+        let max_energy_range_uj = required(&path, "max_energy_range_uj");
+
+        let package_energy_uj = handle.read();
+
+        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::now(constraint_id, package_id, None)).collect();
+
+        let subzones = if with_subzones {
+            (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect()
+        } else {
+            Vec::with_capacity(0)
+        };
+
+        Some(Self { handle, name, max_energy_range_uj, package_energy_uj, constraints, subzones })
     }
 
     pub fn elapsed(&self) -> Elapsed {
@@ -125,20 +143,12 @@ impl Package {
         let subzone_energy_uj = self.subzones.iter().map(Subzone::elapsed);
         res.extend(subzone_energy_uj);
 
-        if let Some(dram) = &self.dram {
-            let (k, v) = dram.elapsed();
-            res.insert(k, v);
-        }
-
         res
     }
 
     pub fn reset(&mut self) {
         self.package_energy_uj = self.handle.read();
         self.subzones.iter_mut().for_each(Subzone::reset);
-        if let Some(dram) = &mut self.dram {
-            dram.reset();
-        }
     }
 }
 
@@ -161,7 +171,7 @@ impl Subzone {
         Some(Self { handle, name, max_energy_range_uj, energy_uj, constraints })
     }
 
-    pub fn mmio_now(package_id: u8) -> Option<Self> {
+    pub fn now_mmio(package_id: u8) -> Option<Self> {
         let path = format!("{}-mmio/intel-rapl-mmio:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
