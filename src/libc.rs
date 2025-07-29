@@ -10,7 +10,7 @@ struct RaplElapsed {
 }
 
 impl RaplElapsed {
-    fn from(elapsed: Elapsed) -> Self {
+    fn from(elapsed: IndexMap<String, f32>) -> Self {
         let len = elapsed.len();
 
         let (keys, mut values): (Vec<String>, Vec<f32>) = elapsed.into_iter().unzip();

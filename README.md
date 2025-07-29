@@ -1,6 +1,6 @@
-# Rapl Energy
+# RAPL Energy
 
-Small library for getting the CPU energy consumption from RAPL and friends.
+Reading CPU energy consumption from RAPL.
 
 This project is very much still a work in progress, and is mainly intended for internal use.
 However, I share it here should it be useful to anyone.
@@ -41,47 +41,4 @@ Finally, restart the `sysfsutils` service.
 
 ```bash
 sudo systemctl restart sysfsutils
-```
-
-## MSR permissions
-
-Reading model-specific registers (MSR) requires elevated permissions.
-
-```bash
-sudo apt install msr-tools
-```
-
-You might need to run `modprobe` as well.
-
-```bash
-modprobe msr
-```
-
-One can then print the accumulated energy value as follows. (Where `-a` prints
-all CPUs, and `-u` prints the value as an unsigned decimal.) On my AMD system
-the address is `0xC001029A`, which I found in https://github.com/amd/amd_energy.
-Check the documentation of your CPU to find your address.
-
-```bash
-sudo rdmsr 0xC001029A -au
-```
-
-Any executable making use of these MSR measurements must be run with sudo.
-
-```bash
-sudo ./target/debug/examples/msr
-```
-
-### MSR group
-
-Ideally I would like to create a group for MSR, to avoid needing to run with
-sudo every time. However, the approach below sadly does not resolve the problem.
-Please let me know if you know of a way to do this.
-
-```bash
-sudo groupadd msr
-sudo chgrp msr /dev/cpu/*/msr
-sudo chmod g+rw /dev/cpu/*/msr
-sudo usermod -aG msr $(whoami)
-newgrp msr
 ```

@@ -30,16 +30,6 @@ impl FileHandle {
         write!(file, "{}", value).unwrap();
     }
 
-    pub fn from_le_bytes(&self, offset: u64) -> u64 {
-        // Open file
-        let mut file = self.open(offset);
-        // Read content
-        let mut buf = [0; std::mem::size_of::<u64>()];
-        file.read_exact(&mut buf).unwrap();
-        // Parse buffer
-        u64::from_le_bytes(buf)
-    }
-
     fn open(&self, offset: u64) -> MutexGuard<'_, File> {
         let mut file = self.handle.lock().unwrap();
         file.seek(SeekFrom::Start(offset)).unwrap();
