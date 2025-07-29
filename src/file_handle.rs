@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::io::{self, Read, Seek, SeekFrom};
 use std::str::FromStr;
 use std::sync::{Mutex, MutexGuard};
 
@@ -23,11 +23,6 @@ impl FileHandle {
         // Parse buffer
         let buf = buf.trim();
         buf.parse::<T>().expect(&format!("Could not parse {}", buf))
-    }
-
-    pub fn write(&self, value: u64) {
-        let mut file = self.open(0);
-        write!(file, "{}", value).unwrap();
     }
 
     fn open(&self, offset: u64) -> MutexGuard<'_, File> {
