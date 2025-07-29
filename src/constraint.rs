@@ -37,8 +37,8 @@ impl Constraint {
     pub fn now(rapl_root: &str, id: u8) -> Option<Self> {
         let handle = ConstraintHandle::new(rapl_root, id);
         Some(Self {
-            power_limit_uw:     handle.read("power_limit_uw").unwrap(),
-            time_window_us:     handle.read("time_window_us").unwrap(),
+            power_limit_uw:     handle.read("power_limit_uw")?,
+            time_window_us:     handle.read("time_window_us")?,
             name:               handle.read("name"),
             min_power_uw:       handle.read("min_power_uw"),
             max_power_uw:       handle.read("max_power_uw"),
