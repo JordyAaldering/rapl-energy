@@ -64,10 +64,10 @@ impl ConstraintHandle {
 
     fn read<T: std::str::FromStr>(&self, field: &str) -> Option<T> where T::Err: std::fmt::Debug {
         let path = format!("{}/constraint_{}_{}", self.rapl_root, self.id, field);
-        let mut file = OpenOptions::new().read(true).open(path).ok()?;
+        let mut file = OpenOptions::new().read(true).open(&path).ok()?;
 
         let mut buf = String::new();
-        file.read_to_string(&mut buf).unwrap();
+        file.read_to_string(&mut buf).expect(&format!("Could not read {}", path));
         let buf = buf.trim();
         Some(buf.parse::<T>().expect(&format!("Could not parse {}", buf)))
     }
