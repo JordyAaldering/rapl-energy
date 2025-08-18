@@ -62,12 +62,17 @@ impl ConstraintHandle {
         Self { rapl_root: rapl_root.to_string(), id }
     }
 
-    fn read<T: std::str::FromStr>(&self, field: &str) -> Option<T> where T::Err: std::fmt::Debug {
+    fn read<T: Default + std::str::FromStr>(&self, field: &str) -> Option<T> where T::Err: std::fmt::Debug {
         let path = format!("{}/constraint_{}_{}", self.rapl_root, self.id, field);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
 
         let mut buf = String::new();
-        file.read_to_string(&mut buf).expect(&format!("Could not read {}", path));
+        if file.read_to_string(&mut buf).is_err() {
+            // This case occurs for constraint_2_time_window_us.
+            // Constraint 2 is peak_power, which does not have a time window.
+            return Some(T::default())
+        }
+
         let buf = buf.trim();
         Some(buf.parse::<T>().expect(&format!("Could not parse {}", buf)))
     }
