@@ -15,9 +15,9 @@ pub struct Constraint {
     /// constraint_X_power_limit_uw (rw) (required)
     /// Power limit in micro watts, which should be applicable for the time window specified by “constraint_X_time_window_us”.
     pub power_limit_uw: u64,
-    /// constraint_X_time_window_us (rw) (optional for peak_power)
+    /// constraint_X_time_window_us (rw) (required, but may be empty for peak_power)
     /// Time window in micro seconds.
-    pub time_window_us: Option<u64>,
+    pub time_window_us: u64,
     /// constraint_X_min_power_uw (ro) (optional)
     /// Minimum allowed power in micro watts.
     pub min_power_uw: Option<u64>,
@@ -38,7 +38,7 @@ impl Constraint {
         let handle = ConstraintHandle::new(rapl_root, id);
         Some(Self {
             power_limit_uw:     handle.read("power_limit_uw")?,
-            time_window_us:     handle.read("time_window_us"),
+            time_window_us:     handle.read("time_window_us")?,
             name:               handle.read("name"),
             min_power_uw:       handle.read("min_power_uw"),
             max_power_uw:       handle.read("max_power_uw"),
