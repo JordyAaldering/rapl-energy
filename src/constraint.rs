@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::{self, Read, Write}};
+use std::{fs::OpenOptions, io::{self, Read, Seek, SeekFrom, Write}};
 
 #[derive(Debug)]
 pub struct ConstraintHandle {
@@ -48,11 +48,11 @@ impl Constraint {
         })
     }
 
-    pub fn set_power_limit_uw(&mut self, value: u64) -> Result<usize, io::Error> {
+    pub fn set_power_limit_uw(&mut self, value: u64) -> Result<(), io::Error> {
         self.handle.write("power_limit_uw", value)
     }
 
-    pub fn set_time_window_us(&mut self, value: u64) -> Result<usize, io::Error> {
+    pub fn set_time_window_us(&mut self, value: u64) -> Result<(), io::Error> {
         self.handle.write("time_window_us", value)
     }
 }
@@ -77,9 +77,11 @@ impl ConstraintHandle {
         Some(buf.parse::<T>().expect(&format!("Could not parse {}", buf)))
     }
 
-    fn write(&self, field: &str, value: u64) -> Result<usize, io::Error> {
+    fn write(&self, field: &str, value: u64) -> Result<(), io::Error> {
         let path = format!("{}/constraint_{}_{}", self.rapl_root, self.id, field);
         let mut file = OpenOptions::new().read(true).write(true).open(path)?;
-        file.write(&value.to_ne_bytes())
+        //file.write(&value.to_ne_bytes())
+        file.seek(SeekFrom::Start(0))?;
+        write!(file, "{}", value)
     }
 }
