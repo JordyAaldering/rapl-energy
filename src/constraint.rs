@@ -2,7 +2,7 @@ use std::{fs::OpenOptions, io::{self, Read, Seek, SeekFrom, Write}};
 
 #[derive(Debug)]
 pub struct ConstraintHandle {
-    rapl_root: String,
+    rapl_root_path: String,
     id: u8,
 }
 
@@ -58,18 +58,19 @@ impl Constraint {
 }
 
 impl ConstraintHandle {
-    fn new(rapl_root: &str, id: u8) -> Self {
-        Self { rapl_root: rapl_root.to_string(), id }
+    fn new(rapl_root_path: &str, id: u8) -> Self {
+        Self { rapl_root_path: rapl_root_path.to_string(), id }
     }
 
     fn read<T: Default + std::str::FromStr>(&self, field: &str) -> Option<T> where T::Err: std::fmt::Debug {
-        let path = format!("{}/constraint_{}_{}", self.rapl_root, self.id, field);
+        let path = format!("{}/constraint_{}_{}", self.rapl_root_path, self.id, field);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
 
         let mut buf = String::new();
         if file.read_to_string(&mut buf).is_err() {
             // This case occurs for constraint_2_time_window_us.
             // Constraint 2 is peak_power, which does not have a time window.
+            // However, the file is required, leading to this case.
             return Some(T::default())
         }
 
@@ -78,9 +79,8 @@ impl ConstraintHandle {
     }
 
     fn write(&self, field: &str, value: u64) -> Result<(), io::Error> {
-        let path = format!("{}/constraint_{}_{}", self.rapl_root, self.id, field);
+        let path = format!("{}/constraint_{}_{}", self.rapl_root_path, self.id, field);
         let mut file = OpenOptions::new().read(true).write(true).open(path)?;
-        //file.write(&value.to_ne_bytes())
         file.seek(SeekFrom::Start(0))?;
         write!(file, "{}", value)
     }

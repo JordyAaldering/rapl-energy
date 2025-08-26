@@ -1,9 +1,6 @@
 # RAPL Energy
 
-Reading CPU energy consumption from RAPL.
-
-This project is very much still a work in progress, and is mainly intended for internal use.
-However, I share it here should it be useful to anyone.
+Reading CPU energy consumption and controlling CPU power limits through RAPL.
 
 ## RAPL permissions
 
