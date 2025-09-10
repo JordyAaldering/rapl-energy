@@ -184,5 +184,5 @@ fn diff(prev_uj: u64, next_uj: u64, max_energy_range_uj: u64) -> f32 {
         // The accumulator overflowed
         next_uj + (max_energy_range_uj - prev_uj)
     };
-    energy_uj as f32 / 1e9
+    energy_uj as f32 / 1e6
 }
