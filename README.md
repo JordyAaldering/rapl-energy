@@ -13,25 +13,23 @@ sudo addgroup rapl
 sudo usermod -aG rapl $(whoami)
 ```
 
-And then adding entries to `/etc/sysfs.conf` for your RAPL domains and subdomains.
-Check your folder hierarchy in `/sys/class/powercap/` to determine which domains
-you have available to your CPU.
+Then add entries to `/etc/sysfs.conf` for your RAPL domains and subdomains.
+Check the folder hierarchy in `/sys/class/powercap/intel-rapl` to determine which domains are available to your CPU.
 
-Then for each domain, add the following lines to `/etc/sysfs.conf`.
-(Requires `sysfsutils` to be installed.)
+Then, for each domain, add the following lines to `/etc/sysfs.conf` (requires `sysfsutils` to be installed).
 
 For example, for package 0:
 
 ```bash
-mode class/powercap/intel-rapl:0/energy_uj = 0440
-owner class/powercap/intel-rapl:0/energy_uj = root:rapl
+mode class/powercap/intel-rapl/intel-rapl:0/energy_uj = 0440
+owner class/powercap/intel-rapl/intel-rapl:0/energy_uj = root:rapl
 ```
 
 And for its first subdomain:
 
 ```bash
-mode class/powercap/intel-rapl:0:0/energy_uj = 0440
-owner class/powercap/intel-rapl:0:0/energy_uj = root:rapl
+mode class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj = 0440
+owner class/powercap/intel-rapl/intel-rapl:0/intel-rapl:0:0/energy_uj = root:rapl
 ```
 
 Finally, restart the `sysfsutils` service.
