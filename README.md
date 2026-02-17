@@ -2,7 +2,7 @@
 
 Reading CPU energy consumption and controlling CPU power limits through RAPL.
 
-## RAPL permissions
+## RAPL permissions (Debian)
 
 Reading RAPL requires elevated permissions.
 
