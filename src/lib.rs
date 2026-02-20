@@ -113,7 +113,7 @@ impl Package {
 
         let package_energy_next = self.handle.read();
         let package_energy = diff(self.package_energy_uj, package_energy_next, self.max_energy_range_uj);
-        res.insert(self.name.clone(), package_energy);
+        res.insert(format!("RAPL {} (J)", self.name), package_energy);
 
         let subzone_energy_uj = self.subzones.iter().map(Subzone::elapsed);
         res.extend(subzone_energy_uj);
@@ -163,7 +163,7 @@ impl Subzone {
     pub fn elapsed(&self) -> (String, f32) {
         let energy_next = self.handle.read();
         let energy = diff(self.energy_uj, energy_next, self.max_energy_range_uj);
-        (self.name.clone(), energy)
+        (format!("RAPL {} (J)", self.name), energy)
     }
 
     pub fn reset(&mut self) {
