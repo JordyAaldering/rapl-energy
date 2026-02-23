@@ -2,15 +2,36 @@
 
 Reading CPU energy consumption and controlling CPU power limits through RAPL.
 
-## RAPL permissions (Debian)
-
 Reading RAPL requires elevated permissions.
 
-I suggest adding a new `rapl` group.
+## RAPL permissions
+
+Create a new `rapl` group.
+
+```bash
+sudo groupadd rapl
+sudo usermod -aG rapl $USER
+```
+
+Create a new file `sudo nano /etc/udev/rules.d/70-powercap.rules` and add the following rule:
+
+```bash
+ACTION=="add", SUBSYSTEM=="powercap", KERNEL=="intel-rapl:*", \
+  RUN+="/usr/bin/chgrp rapl /sys/%p/energy_uj'", \
+  RUN+="/usr/bin/chmod g+r /sys/%p/energy_uj"
+```
+
+Reload udev rules: `sudo udevadm control --reload-rules`
+Trigger the rule: `sudo udevadm trigger --verbose --subsystem-match=powercap`
+Check if you have read permissions: `ls -l /sys/class/powercap/intel-rapl:*/energy_uj`
+
+## RAPL permissions (alternative method using sysfn)
+
+Create a new `rapl` group.
 
 ```bash
 sudo addgroup rapl
-sudo usermod -aG rapl $(whoami)
+sudo usermod -aG rapl $USER
 ```
 
 Then add entries to `/etc/sysfs.conf` for your RAPL domains and subdomains.
@@ -37,15 +58,3 @@ Finally, restart the `sysfsutils` service.
 ```bash
 sudo systemctl restart sysfsutils
 ```
-
-## RAPL permissions (Arch)
-
-These instructions should be distribution-invariant and even work on Debian-based distributions, I think.
-
-1. Create and edit the following file: `sudo nano /etc/udev/rules.d/99-powercap.rules`
-2. Put the following into the file: `ACTION=="add", SUBSYSTEM=="powercap", KERNEL=="intel-rapl:0", RUN+="/bin/chmod 644 /sys/class/powercap/%k/energy_uj"`
-3. Reload udev rules: `sudo udevadm control --reload-rules`
-4. Trigger the rule: `sudo udevadm trigger --verbose --subsystem-match=powercap --action=add`
-5. Check if the rule worked (you should have read permissions for the file): `ls -la /sys/class/powercap/intel-rapl:0/energy_uj`
-
-The reason we're doing it this way is because permission changes applied to /sys/ get reset on reboot, so this is a way to make the permission change persistent.
