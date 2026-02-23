@@ -23,6 +23,7 @@ ACTION=="add", SUBSYSTEM=="powercap", KERNEL=="intel-rapl:*", \
 
 * Reload udev rules: `sudo udevadm control --reload-rules`
 * Trigger the rule: `sudo udevadm trigger --verbose --subsystem-match=powercap`
+* You might have to reboot.
 * Check if you have read permissions: `ls -l /sys/class/powercap/intel-rapl:*/energy_uj`
 
 ## RAPL permissions (alternative method using sysfn)
