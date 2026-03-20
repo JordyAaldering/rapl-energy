@@ -1,6 +1,6 @@
 use std::env;
 
-fn main() -> Result<(), cbindgen::Error> {
+fn main() {
     let lib_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     let profile = env::var("PROFILE").unwrap();
     let path = format!("target/{}/rapl_energy.h", profile);
@@ -11,8 +11,7 @@ fn main() -> Result<(), cbindgen::Error> {
         .with_include_guard("RAPL_ENERGY_H")
         .with_no_includes()
         .with_sys_include("stdint.h")
-        .generate()?
+        .generate()
+        .expect("Unable to generate bindings")
         .write_to_file(path);
-
-    Ok(())
 }

@@ -13,7 +13,7 @@ readme = "README.md"
 crate-type = ["lib", "cdylib"]
 
 [dependencies]
-indexmap = "2.11.1"
+indexmap = "2.13.0"
 
 [build-dependencies]
-cbindgen = "0.29.0"
+cbindgen = "0.29.2"

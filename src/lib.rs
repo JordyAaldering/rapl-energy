@@ -2,25 +2,20 @@ mod constraint;
 mod file_handle;
 mod libc;
 
-use std::path::Path;
-use std::str::FromStr;
-use std::sync::LazyLock;
+use std::{path::Path, str::FromStr, sync::LazyLock};
 
 use indexmap::IndexMap;
 
-use crate::constraint::Constraint;
-use crate::file_handle::FileHandle;
+use crate::{constraint::Constraint, file_handle::FileHandle};
 
 /// RAPL can exist in either `/sys/class` or `/sys/devices`. Determine the
 /// correct location, with a preference for `/sys/class` if both exist.
 /// Note the even on AMD processors, the path contains `intel-rapl`.
 static PREFIX: LazyLock<&'static str> = LazyLock::new(|| {
-    const CLASS_PREFIX: &'static str = "/sys/class/powercap/intel-rapl";
-    const DEVICES_PREFIX: &'static str = "/sys/devices/virtual/powercap/intel-rapl";
-    if Path::new(CLASS_PREFIX).exists() {
-        CLASS_PREFIX
+    if Path::new("/sys/class/powercap/intel-rapl").exists() {
+        "/sys/class/powercap/intel-rapl"
     } else {
-        DEVICES_PREFIX
+        "/sys/devices/virtual/powercap/intel-rapl"
     }
 });
 
@@ -33,8 +28,8 @@ pub struct Rapl {
 #[derive(Debug)]
 pub struct Package {
     handle: FileHandle,
-    name: String,
-    package_energy_uj: u64,
+    pub name: String,
+    pub package_energy_uj: u64,
     pub max_energy_range_uj: u64,
     pub constraints: Vec<Constraint>,
     pub subzones: Vec<Subzone>,
@@ -43,8 +38,8 @@ pub struct Package {
 #[derive(Debug)]
 pub struct Subzone {
     handle: FileHandle,
-    name: String,
-    energy_uj: u64,
+    pub name: String,
+    pub energy_uj: u64,
     pub max_energy_range_uj: u64,
     pub constraints: Vec<Constraint>,
 }

@@ -17,17 +17,16 @@ int main()
 
     sleep(1);
 
-    struct RaplElapsed *elapsed;
-    elapsed = rapl_elapsed(&rapl);
+    struct RaplElapsed *res;
+    res = rapl_elapsed(&rapl);
 
-    for (uintptr_t i = 0; i < elapsed->len; i++) {
-        printf("%s: %f\n", elapsed->keys[i], elapsed->values[i]);
+    for (uintptr_t i = 0; i < res->len; i++) {
+        printf("%s: %f\n", res->keys[i], res->values[i]);
     }
 
-    rapl_elapsed_free(elapsed);
+    rapl_elapsed_free(res);
     rapl_free(rapl);
-    return 0;
-#else
-    return 1;
 #endif
+
+    return 0;
 }
