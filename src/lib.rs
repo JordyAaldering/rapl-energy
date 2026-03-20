@@ -2,7 +2,7 @@ mod constraint;
 mod file_handle;
 mod libc;
 
-use std::{path::Path, str::FromStr, sync::LazyLock};
+use std::{io, path::Path, str::FromStr, sync::LazyLock};
 
 use indexmap::IndexMap;
 
@@ -45,10 +45,10 @@ pub struct Subzone {
 }
 
 impl Rapl {
-    pub fn now(with_subzones: bool) -> Option<Self> {
-        let head = Package::now(0, with_subzones)?;
-        let tail = (1..u8::MAX).map_while(|package_id| Package::now(package_id, with_subzones));
-        let mmio = (0..u8::MAX).map_while(|package_id| Package::now_mmio(package_id, with_subzones));
+    pub fn new(with_subzones: bool) -> Option<Self> {
+        let head = Package::new(0, with_subzones)?;
+        let tail = (1..u8::MAX).map_while(|package_id| Package::new(package_id, with_subzones));
+        let mmio = (0..u8::MAX).map_while(|package_id| Package::new_mmio(package_id, with_subzones));
         let packages = std::iter::once(head).chain(tail).chain(mmio).collect();
         Some(Self { packages })
     }
@@ -60,10 +60,42 @@ impl Rapl {
     pub fn reset(&mut self) {
         self.packages.iter_mut().for_each(Package::reset);
     }
+
+    pub fn iter_subzones(&self) -> impl Iterator<Item = &Subzone> {
+        self.packages.iter().flat_map(Package::iter_subzones)
+    }
+
+    pub fn iter_packages(&self) -> impl Iterator<Item = &Package> {
+        self.packages.iter()
+    }
+
+    pub fn iter_mut_packages(&mut self) -> impl Iterator<Item = &mut Package> {
+        self.packages.iter_mut()
+    }
+
+    pub fn iter_mut_subzones(&mut self) -> impl Iterator<Item = &mut Subzone> {
+        self.packages.iter_mut().flat_map(Package::iter_mut_subzones)
+    }
+
+    pub fn iter_constraints(&self) -> impl Iterator<Item = &Constraint> {
+        self.packages.iter().flat_map(Package::iter_constraints)
+    }
+
+    pub fn iter_mut_constraints(&mut self) -> impl Iterator<Item = &mut Constraint> {
+        self.packages.iter_mut().flat_map(Package::iter_mut_constraints)
+    }
+
+    pub fn reset_power_limits(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_power_limit(None))
+    }
+
+    pub fn reset_time_windows(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_time_window(None))
+    }
 }
 
 impl Package {
-    pub fn now(package_id: u8, with_subzones: bool) -> Option<Self> {
+    pub fn new(package_id: u8, with_subzones: bool) -> Option<Self> {
         let path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
@@ -72,10 +104,10 @@ impl Package {
 
         let package_energy_uj = handle.read();
 
-        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::now(&path, constraint_id)).collect();
+        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::new(&path, constraint_id)).collect();
 
         let subzones = if with_subzones {
-            (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect()
+            (0..u8::MAX).map_while(|subzone_id| Subzone::new(package_id, subzone_id)).collect()
         } else {
             Vec::with_capacity(0)
         };
@@ -83,7 +115,7 @@ impl Package {
         Some(Self { handle, name, max_energy_range_uj, package_energy_uj, constraints, subzones })
     }
 
-    pub fn now_mmio(package_id: u8, with_subzones: bool) -> Option<Self> {
+    pub fn new_mmio(package_id: u8, with_subzones: bool) -> Option<Self> {
         let path = format!("{}/intel-rapl-mmio:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
@@ -92,10 +124,10 @@ impl Package {
 
         let package_energy_uj = handle.read();
 
-        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::now(&path, constraint_id)).collect();
+        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::new(&path, constraint_id)).collect();
 
         let subzones = if with_subzones {
-            (0..u8::MAX).map_while(|subzone_id| Subzone::now(package_id, subzone_id)).collect()
+            (0..u8::MAX).map_while(|subzone_id| Subzone::new(package_id, subzone_id)).collect()
         } else {
             Vec::with_capacity(0)
         };
@@ -120,10 +152,34 @@ impl Package {
         self.package_energy_uj = self.handle.read();
         self.subzones.iter_mut().for_each(Subzone::reset);
     }
+
+    pub fn iter_subzones(&self) -> impl Iterator<Item = &Subzone> {
+        self.subzones.iter()
+    }
+
+    pub fn iter_mut_subzones(&mut self) -> impl Iterator<Item = &mut Subzone> {
+        self.subzones.iter_mut()
+    }
+
+    pub fn iter_constraints(&self) -> impl Iterator<Item = &Constraint> {
+        self.constraints.iter().chain(self.subzones.iter().flat_map(Subzone::iter_constraints))
+    }
+
+    pub fn iter_mut_constraints(&mut self) -> impl Iterator<Item = &mut Constraint> {
+        self.constraints.iter_mut().chain(self.subzones.iter_mut().flat_map(Subzone::iter_mut_constraints))
+    }
+
+    pub fn reset_power_limits(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_power_limit(None))
+    }
+
+    pub fn reset_time_windows(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_time_window(None))
+    }
 }
 
 impl Subzone {
-    pub fn now(package_id: u8, subzone_id: u8) -> Option<Self> {
+    pub fn new(package_id: u8, subzone_id: u8) -> Option<Self> {
         let package_path = format!("{}/intel-rapl:{}", *PREFIX, package_id);
         let subzone_path = format!("{}/intel-rapl:{}:{}", package_path, package_id, subzone_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", subzone_path), false).ok()?;
@@ -136,12 +192,12 @@ impl Subzone {
 
         let energy_uj = handle.read();
 
-        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::now(&subzone_path, constraint_id)).collect();
+        let constraints = (0..u8::MAX).map_while(|constraint_id| Constraint::new(&subzone_path, constraint_id)).collect();
 
         Some(Self { handle, name, max_energy_range_uj, energy_uj, constraints })
     }
 
-    pub fn now_mmio(package_id: u8) -> Option<Self> {
+    pub fn new_mmio(package_id: u8) -> Option<Self> {
         let path = format!("{}-mmio/intel-rapl-mmio:{}", *PREFIX, package_id);
         let handle = FileHandle::new(&format!("{}/energy_uj", path), false).ok()?;
 
@@ -163,6 +219,22 @@ impl Subzone {
 
     pub fn reset(&mut self) {
         self.energy_uj = self.handle.read();
+    }
+
+    pub fn iter_constraints(&self) -> impl Iterator<Item = &Constraint> {
+        self.constraints.iter()
+    }
+
+    pub fn iter_mut_constraints(&mut self) -> impl Iterator<Item = &mut Constraint> {
+        self.constraints.iter_mut()
+    }
+
+    pub fn reset_power_limits(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_power_limit(None))
+    }
+
+    pub fn reset_time_windows(&mut self) -> Result<(), io::Error> {
+        self.iter_mut_constraints().try_for_each(|c| c.reset_time_window(None))
     }
 }
 

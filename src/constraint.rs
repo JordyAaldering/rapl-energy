@@ -34,7 +34,7 @@ pub struct Constraint {
 
 impl Constraint {
     /// rapl_path: e.g. `/sys/class/powercap/intel-rapl:0:0`
-    pub fn now(rapl_root: &str, id: u8) -> Option<Self> {
+    pub fn new(rapl_root: &str, id: u8) -> Option<Self> {
         let handle = ConstraintHandle::new(rapl_root, id);
         Some(Self {
             power_limit_uw:     handle.read("power_limit_uw")?,
@@ -52,8 +52,30 @@ impl Constraint {
         self.handle.write("power_limit_uw", value)
     }
 
+    pub fn reset_power_limit(&mut self, default: Option<u64>) -> Result<(), io::Error> {
+        if let Some(max_power_uw) = self.max_power_uw {
+            self.set_power_limit_uw(max_power_uw)
+        } else if let Some(default) = default {
+            self.set_power_limit_uw(default)
+        } else {
+            let e = self.handle.path("power_limit_uw");
+            Err(io::Error::new(io::ErrorKind::NotFound, e))
+        }
+    }
+
     pub fn set_time_window_us(&mut self, value: u64) -> Result<(), io::Error> {
         self.handle.write("time_window_us", value)
+    }
+
+    pub fn reset_time_window(&mut self, default: Option<u64>) -> Result<(), io::Error> {
+        if let Some(max_time_window_us) = self.max_time_window_us {
+            self.set_time_window_us(max_time_window_us)
+        } else if let Some(default) = default {
+            self.set_time_window_us(default)
+        } else {
+            let e = self.handle.path("time_window_us");
+            Err(io::Error::new(io::ErrorKind::NotFound, e))
+        }
     }
 }
 
@@ -62,8 +84,12 @@ impl ConstraintHandle {
         Self { rapl_root_path: rapl_root_path.to_string(), id }
     }
 
+    fn path(&self, field: &str) -> String {
+        format!("{}/constraint_{}_{}", self.rapl_root_path, self.id, field)
+    }
+
     fn read<T: Default + std::str::FromStr>(&self, field: &str) -> Option<T> where T::Err: std::fmt::Debug {
-        let path = format!("{}/constraint_{}_{}", self.rapl_root_path, self.id, field);
+        let path = self.path(field);
         let mut file = OpenOptions::new().read(true).open(&path).ok()?;
 
         let mut buf = String::new();
@@ -79,7 +105,7 @@ impl ConstraintHandle {
     }
 
     fn write(&self, field: &str, value: u64) -> Result<(), io::Error> {
-        let path = format!("{}/constraint_{}_{}", self.rapl_root_path, self.id, field);
+        let path = self.path(field);
         let mut file = OpenOptions::new().read(true).write(true).open(path)?;
         file.seek(SeekFrom::Start(0))?;
         write!(file, "{}", value)

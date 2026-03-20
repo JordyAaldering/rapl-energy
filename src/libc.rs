@@ -47,7 +47,7 @@ impl RaplElapsed {
 
 #[unsafe(no_mangle)]
 extern "C" fn rapl_start(with_subzones: bool) -> Box<Rapl> {
-    let rapl = Rapl::now(with_subzones).unwrap();
+    let rapl = Rapl::new(with_subzones).unwrap();
     Box::new(rapl)
 }
 
