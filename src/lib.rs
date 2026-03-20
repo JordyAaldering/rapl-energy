@@ -77,20 +77,20 @@ impl Rapl {
         self.packages.iter_mut().flat_map(Package::iter_mut_subzones)
     }
 
-    pub fn iter_constraints(&self) -> impl Iterator<Item = &Constraint> {
-        self.packages.iter().flat_map(Package::iter_constraints)
+    pub fn iter_constraints(&self, with_subzones: bool) -> impl Iterator<Item = &Constraint> {
+        self.packages.iter().flat_map(move |p| p.iter_constraints(with_subzones))
     }
 
-    pub fn iter_mut_constraints(&mut self) -> impl Iterator<Item = &mut Constraint> {
-        self.packages.iter_mut().flat_map(Package::iter_mut_constraints)
+    pub fn iter_mut_constraints(&mut self, with_subzones: bool) -> impl Iterator<Item = &mut Constraint> {
+        self.packages.iter_mut().flat_map(move |p| p.iter_mut_constraints(with_subzones))
     }
 
-    pub fn reset_power_limits(&mut self) -> Result<(), io::Error> {
-        self.iter_mut_constraints().try_for_each(|c| c.reset_power_limit(None))
+    pub fn reset_power_limits(&mut self, with_subzones: bool) -> Result<(), io::Error> {
+        self.iter_mut_constraints(with_subzones).try_for_each(|c| c.reset_power_limit(None))
     }
 
-    pub fn reset_time_windows(&mut self) -> Result<(), io::Error> {
-        self.iter_mut_constraints().try_for_each(|c| c.reset_time_window(None))
+    pub fn reset_time_windows(&mut self, with_subzones: bool) -> Result<(), io::Error> {
+        self.iter_mut_constraints(with_subzones).try_for_each(|c| c.reset_time_window(None))
     }
 }
 
@@ -161,20 +161,28 @@ impl Package {
         self.subzones.iter_mut()
     }
 
-    pub fn iter_constraints(&self) -> impl Iterator<Item = &Constraint> {
-        self.constraints.iter().chain(self.subzones.iter().flat_map(Subzone::iter_constraints))
+    pub fn iter_constraints(&self, with_subzones: bool) -> impl Iterator<Item = &Constraint> {
+        self.constraints.iter().chain(
+            with_subzones
+                .then(|| self.subzones.iter().flat_map(Subzone::iter_constraints))
+                .into_iter()
+                .flatten())
     }
 
-    pub fn iter_mut_constraints(&mut self) -> impl Iterator<Item = &mut Constraint> {
-        self.constraints.iter_mut().chain(self.subzones.iter_mut().flat_map(Subzone::iter_mut_constraints))
+    pub fn iter_mut_constraints(&mut self, with_subzones: bool) -> impl Iterator<Item = &mut Constraint> {
+        self.constraints.iter_mut().chain(
+            with_subzones
+                .then(|| self.subzones.iter_mut().flat_map(Subzone::iter_mut_constraints))
+                .into_iter()
+                .flatten())
     }
 
-    pub fn reset_power_limits(&mut self) -> Result<(), io::Error> {
-        self.iter_mut_constraints().try_for_each(|c| c.reset_power_limit(None))
+    pub fn reset_power_limits(&mut self, with_subzones: bool) -> Result<(), io::Error> {
+        self.iter_mut_constraints(with_subzones).try_for_each(|c| c.reset_power_limit(None))
     }
 
-    pub fn reset_time_windows(&mut self) -> Result<(), io::Error> {
-        self.iter_mut_constraints().try_for_each(|c| c.reset_time_window(None))
+    pub fn reset_time_windows(&mut self, with_subzones: bool) -> Result<(), io::Error> {
+        self.iter_mut_constraints(with_subzones).try_for_each(|c| c.reset_time_window(None))
     }
 }
 
