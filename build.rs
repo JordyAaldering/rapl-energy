@@ -1,8 +1,10 @@
-use std::env;
+#[cfg(not(feature = "libc"))]
+fn main() {}
 
+#[cfg(feature = "libc")]
 fn main() {
-    let lib_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let profile = env::var("PROFILE").unwrap();
+    let lib_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
+    let profile = std::env::var("PROFILE").unwrap();
     let path = format!("target/{}/rapl_energy.h", profile);
 
     cbindgen::Builder::new()

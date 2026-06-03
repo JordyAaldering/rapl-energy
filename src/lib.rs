@@ -1,5 +1,6 @@
 mod constraint;
 mod file_handle;
+#[cfg(feature = "libc")]
 mod libc;
 
 use std::{io, path::Path, str::FromStr, sync::LazyLock};
