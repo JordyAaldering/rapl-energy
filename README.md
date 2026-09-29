@@ -49,7 +49,7 @@ ACTION=="add", SUBSYSTEM=="powercap", KERNEL=="intel-rapl:*", \
   RUN+="/usr/local/sbin/set-rapl-permissions"
 ```
 
-Reload the rules:
+Reboot or reload the rules:
 ```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=powercap
