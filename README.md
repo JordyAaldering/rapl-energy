@@ -56,3 +56,8 @@ sudo udevadm trigger --subsystem-match=powercap
 ```
 
 You should now be able to read the energy counters, and adjust the power limit, if available.
+
+You can check your permissions, and available domains, with:
+```bash
+find /sys/class/powercap/intel-rapl/ -type f -printf '%M %p\n'
+```
