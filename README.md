@@ -49,13 +49,7 @@ ACTION=="add", SUBSYSTEM=="powercap", KERNEL=="intel-rapl:*", \
   RUN+="/usr/local/sbin/set-rapl-permissions"
 ```
 
-Reboot or reload the rules:
-```bash
-sudo udevadm control --reload-rules
-sudo udevadm trigger --subsystem-match=powercap
-```
-
-You should now be able to read the energy counters, and adjust the power limit, if available.
+After a reboot, you should be able to read the energy counters and adjust the power limit, if available.
 
 You can check your permissions, and available domains, with:
 ```bash
